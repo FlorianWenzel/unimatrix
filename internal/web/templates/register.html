@@ -1,0 +1,18 @@
+{{define "register.html"}}{{template "base" .}}{{end}}
+
+{{define "content"}}
+<h1>Assimilate</h1>
+<p style="color: var(--fg-dim); margin-bottom: 16px;">
+  Join the collective. Your identity will be added to our own.
+</p>
+<form method="post" action="/register">
+  <label for="designation">drone designation</label>
+  <input id="designation" name="designation" type="text" autocomplete="username" required autofocus>
+  <label for="access_code">access code</label>
+  <input id="access_code" name="access_code" type="password" autocomplete="new-password" required>
+  <button type="submit">assimilate</button>
+</form>
+<p style="margin-top: 20px; color: var(--fg-dim)">
+  Already part of the collective? <a href="/login">connect</a>.
+</p>
+{{end}}

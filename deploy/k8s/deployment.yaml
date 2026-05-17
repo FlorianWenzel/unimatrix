@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unimatrix
+  namespace: unimatrix
+  labels:
+    app.kubernetes.io/name: unimatrix
+    app.kubernetes.io/part-of: unimatrix
+spec:
+  # SQLite + RWO PVC = single replica. Use `kubectl rollout restart` to roll.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: unimatrix
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: unimatrix
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: unimatrix
+          image: ghcr.io/florianwenzel/unimatrix:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: UNIMATRIX_ADDR
+              value: ":8080"
+            - name: UNIMATRIX_DB
+              value: /data/unimatrix.db
+            - name: UNIMATRIX_SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: unimatrix-secrets
+                  key: session_key
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: unimatrix-data

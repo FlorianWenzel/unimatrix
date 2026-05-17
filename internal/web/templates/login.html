@@ -1,0 +1,15 @@
+{{define "login.html"}}{{template "base" .}}{{end}}
+
+{{define "content"}}
+<h1>Connect</h1>
+<form method="post" action="/login">
+  <label for="designation">drone designation</label>
+  <input id="designation" name="designation" type="text" autocomplete="username" required autofocus>
+  <label for="access_code">access code</label>
+  <input id="access_code" name="access_code" type="password" autocomplete="current-password" required>
+  <button type="submit">connect</button>
+</form>
+<p style="margin-top: 20px; color: var(--fg-dim)">
+  Not yet in the collective? <a href="/register">assimilate</a>.
+</p>
+{{end}}

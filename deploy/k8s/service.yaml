@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: unimatrix
+  namespace: unimatrix
+  labels:
+    app.kubernetes.io/name: unimatrix
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: unimatrix
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

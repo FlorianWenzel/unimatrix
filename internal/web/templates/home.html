@@ -1,0 +1,36 @@
+{{define "home.html"}}{{template "base" .}}{{end}}
+
+{{define "content"}}
+<h1>The Collective</h1>
+
+{{if .Drone}}
+<div class="compose">
+  <form method="post" action="/transmission">
+    <label for="body">broadcast a transmission</label>
+    <textarea id="body" name="body" maxlength="500" placeholder="state your thought packet…" required></textarea>
+    <button type="submit">transmit</button>
+  </form>
+</div>
+{{else}}
+<p style="color: var(--fg-dim); margin-bottom: 20px;">
+  You are not connected to the collective. <a href="/register">Assimilate</a> or
+  <a href="/login">connect</a> to broadcast a transmission.
+</p>
+{{end}}
+
+{{if .Transmissions}}
+  {{range .Transmissions}}
+    <div class="transmission">
+      <div class="meta">
+        <span class="designation">{{.Designation}}</span>
+        · <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+            {{.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
+          </time>
+      </div>
+      <div class="body">{{.Body}}</div>
+    </div>
+  {{end}}
+{{else}}
+  <p style="color: var(--fg-dim)">The collective is silent. No transmissions yet.</p>
+{{end}}
+{{end}}
