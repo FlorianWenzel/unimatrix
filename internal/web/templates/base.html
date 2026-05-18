@@ -137,6 +137,29 @@
         // Format as local time
         timeEl.textContent = date.toLocaleString();
       });
+      
+      // Character count for transmission textarea
+      const textarea = document.getElementById('body');
+      const charCount = document.getElementById('char-count');
+      if (textarea && charCount) {
+        function updateCharCount() {
+          const currentLength = textarea.value.length;
+          const maxLength = parseInt(textarea.getAttribute('maxlength'));
+          charCount.textContent = currentLength + '/' + maxLength;
+          
+          // Change color based on how close we are to the limit
+          if (currentLength > maxLength * 0.9) {
+            charCount.style.color = '#ff5e7a'; // danger color when near limit
+          } else {
+            charCount.style.color = 'var(--fg-dim)';
+          }
+        }
+        
+        // Update on input events
+        textarea.addEventListener('input', updateCharCount);
+        // Initialize on page load
+        updateCharCount();
+      }
     });
   </script>
 </body>
