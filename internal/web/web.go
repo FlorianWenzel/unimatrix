@@ -198,11 +198,12 @@ func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteTransmission(w http.ResponseWriter, r *http.Request) {
-	d := s.currentDrone(r)
-	if d == nil {
+	drone := s.currentDrone(r)
+	if drone == nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
@@ -220,8 +221,8 @@ func (s *Server) deleteTransmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	if err := s.store.DeleteTransmission(d.ID, transmissionID); err != nil {
-		s.logger.Warn("delete transmission", "drone", d.Designation, "err", err)
+	if err := s.store.DeleteTransmission(drone.ID, transmissionID); err != nil {
+		s.logger.Warn("delete transmission", "drone", drone.Designation, "err", err)
 		// For security, we don't distinguish between "not found" and "not owned"
 		http.Error(w, "failed to delete transmission", http.StatusInternalServerError)
 		return
