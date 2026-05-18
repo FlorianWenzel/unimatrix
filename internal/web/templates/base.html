@@ -127,6 +127,18 @@
     {{template "content" .}}
   </main>
   <footer>RESISTANCE IS FUTILE · built by drones · <a href="https://github.com/FlorianWenzel/unimatrix">source</a></footer>
+  <script>
+    // Convert UTC timestamps to local time
+    document.addEventListener('DOMContentLoaded', function() {
+      const timeElements = document.querySelectorAll('time[data-created-at]');
+      timeElements.forEach(function(timeEl) {
+        const utcString = timeEl.getAttribute('data-created-at');
+        const date = new Date(utcString);
+        // Format as local time
+        timeEl.textContent = date.toLocaleString();
+      });
+    });
+  </script>
 </body>
 </html>
 {{end}}
