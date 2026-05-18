@@ -253,7 +253,7 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 // It returns an error if the transmission doesn't exist or doesn't belong to the given drone.
 func (s *Store) DeleteTransmission(droneID int64, transmissionID int64) error {
 	result, err := s.db.Exec(
-		`DELETE FROM transmissions WHERE id = ? AND drone_id = ?`, 
+		`DELETE FROM transmissions WHERE id = ? AND drone_id = ?`,
 		transmissionID, droneID,
 	)
 	if err != nil {
