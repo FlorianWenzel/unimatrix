@@ -93,12 +93,12 @@ func (s *Server) currentDrone(r *http.Request) *store.Drone {
 	if id == 0 {
 		return nil
 	}
-	d, err := s.store.DroneByID(id)
+	drone, err := s.store.DroneByID(id)
 	if err != nil {
 		s.logger.Warn("lookup drone", "id", id, "err", err)
 		return nil
 	}
-	return d
+	return drone
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +136,7 @@ func (s *Server) registerSubmit(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	d, err := s.store.RegisterDrone(designation, accessCode)
+	drone, err := s.store.RegisterDrone(designation, accessCode)
 	if err != nil {
 		flash := "Assimilation failed."
 		if errors.Is(err, store.ErrDroneExists) {
@@ -145,7 +145,7 @@ func (s *Server) registerSubmit(w http.ResponseWriter, r *http.Request) {
 		s.render(w, "register.html", pageData{Title: "Assimilate", Flash: flash})
 		return
 	}
-	s.setSession(w, d.ID)
+	s.setSession(w, drone.ID)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -164,14 +164,14 @@ func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	designation := strings.TrimSpace(r.PostFormValue("designation"))
 	accessCode := r.PostFormValue("access_code")
-	d, err := s.store.Authenticate(designation, accessCode)
+	drone, err := s.store.Authenticate(designation, accessCode)
 	if err != nil {
 		s.render(w, "login.html", pageData{
 			Title: "Connect", Flash: "The collective does not recognize that designation.",
 		})
 		return
 	}
-	s.setSession(w, d.ID)
+	s.setSession(w, drone.ID)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -181,8 +181,8 @@ func (s *Server) logoutSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
-	d := s.currentDrone(r)
-	if d == nil {
+	drone := s.currentDrone(r)
+	if drone == nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -191,8 +191,8 @@ func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := r.PostFormValue("body")
-	if _, err := s.store.PostTransmission(d.ID, body); err != nil {
-		s.logger.Warn("post transmission", "drone", d.Designation, "err", err)
+	if _, err := s.store.PostTransmission(drone.ID, body); err != nil {
+		s.logger.Warn("post transmission", "drone", drone.Designation, "err", err)
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
