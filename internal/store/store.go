@@ -248,3 +248,26 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 	}
 	return out, rows.Err()
 }
+
+// DeleteTransmission removes a transmission by ID.
+// It returns an error if the transmission doesn't exist or doesn't belong to the given drone.
+func (s *Store) DeleteTransmission(droneID int64, transmissionID int64) error {
+	result, err := s.db.Exec(
+		`DELETE FROM transmissions WHERE id = ? AND drone_id = ?`, 
+		transmissionID, droneID,
+	)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return errors.New("transmission not found or not owned by drone")
+	}
+	
+	return nil
+}

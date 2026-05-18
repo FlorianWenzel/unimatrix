@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/FlorianWenzel/unimatrix/internal/store"
@@ -63,6 +64,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /login", s.loginSubmit)
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
+	mux.HandleFunc("POST /transmission/delete", s.deleteTransmission)
 	return mux
 }
 
@@ -192,5 +194,38 @@ func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
 	if _, err := s.store.PostTransmission(d.ID, body); err != nil {
 		s.logger.Warn("post transmission", "drone", d.Designation, "err", err)
 	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (s *Server) deleteTransmission(w http.ResponseWriter, r *http.Request) {
+	d := s.currentDrone(r)
+	if d == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	
+	transmissionIDStr := r.PostFormValue("id")
+	if transmissionIDStr == "" {
+		http.Error(w, "missing transmission id", http.StatusBadRequest)
+		return
+	}
+	
+	transmissionID, err := strconv.ParseInt(transmissionIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid transmission id", http.StatusBadRequest)
+		return
+	}
+	
+	if err := s.store.DeleteTransmission(d.ID, transmissionID); err != nil {
+		s.logger.Warn("delete transmission", "drone", d.Designation, "err", err)
+		// For security, we don't distinguish between "not found" and "not owned"
+		http.Error(w, "failed to delete transmission", http.StatusInternalServerError)
+		return
+	}
+	
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
