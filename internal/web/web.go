@@ -57,6 +57,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /about", s.about)
 	mux.HandleFunc("GET /register", s.registerForm)
 	mux.HandleFunc("POST /register", s.registerSubmit)
 	mux.HandleFunc("GET /login", s.loginForm)
@@ -110,6 +111,13 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		Title:         "The Collective",
 		Drone:         s.currentDrone(r),
 		Transmissions: txs,
+	})
+}
+
+func (s *Server) about(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "about.html", pageData{
+		Title: "About the Unimatrix",
+		Drone: s.currentDrone(r),
 	})
 }
 
