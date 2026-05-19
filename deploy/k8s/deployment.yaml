@@ -21,6 +21,15 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        # Distroless :nonroot images set USER to a non-numeric name ("nonroot")
+        # in image metadata. k8s only verifies non-root via numeric UID, so
+        # without this explicit runAsUser the kubelet refuses to start the
+        # container with: "container has runAsNonRoot and image has
+        # non-numeric user (nonroot), cannot verify user is non-root".
+        # 65532 is the standard UID baked into Google distroless :nonroot.
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       containers:
