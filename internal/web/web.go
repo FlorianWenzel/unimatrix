@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/FlorianWenzel/unimatrix/internal/store"
