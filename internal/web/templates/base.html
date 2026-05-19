@@ -160,6 +160,26 @@
         // Initialize on page load
         updateCharCount();
       }
+      
+      // Copy link functionality
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('copy-link')) {
+          const transmissionId = e.target.getAttribute('data-id');
+          if (transmissionId) {
+            const url = window.location.origin + '/transmission/' + transmissionId;
+            navigator.clipboard.writeText(url).then(() => {
+              // Visual feedback
+              const originalText = e.target.textContent;
+              e.target.textContent = 'copied!';
+              setTimeout(() => {
+                e.target.textContent = originalText;
+              }, 2000);
+            }).catch(err => {
+              console.error('Failed to copy: ', err);
+            });
+          }
+        }
+      });
     });
   </script>
 </body>
