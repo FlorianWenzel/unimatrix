@@ -114,7 +114,7 @@
       {{if .Drone}}
         <span style="color: var(--fg-dim)">{{.Drone.Designation}}</span>
         <form method="post" action="/logout" style="display:inline">
-          <button class="inline" type="submit">disconnect</button>
+          <button class="inline" type="submit">logout</button>
         </form>
       {{else}}
         <a href="/login">connect</a>
