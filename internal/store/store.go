@@ -259,7 +259,6 @@ func (s *Store) DeleteTransmission(droneID int64, transmissionID int64) error {
 	if err != nil {
 		return err
 	}
-	
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
