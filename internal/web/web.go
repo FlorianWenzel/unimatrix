@@ -73,10 +73,12 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 type pageData struct {
-	Title         string
-	Drone         *store.Drone // nil if anonymous
-	Transmissions []store.Transmission
-	Flash         string
+	Title             string
+	Drone             *store.Drone // nil if anonymous
+	Transmissions     []store.Transmission
+	Flash             string
+	FilterDrone       string
+	AllDrones         []string
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
