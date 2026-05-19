@@ -55,7 +55,11 @@ spec:
           restartPolicy: Never
           containers:
             - name: kubectl
-              image: bitnami/kubectl:1.31
+              # Pinned to a small, stable, k3s-native kubectl image.
+              # NB: bitnami/kubectl:1.31 (minor-only tag) was unreliable
+              # due to Bitnami registry churn — full-version Rancher image
+              # is more predictable.
+              image: rancher/kubectl:v1.31.4
               command:
                 - /bin/sh
                 - -c
