@@ -106,6 +106,30 @@
       letter-spacing: 0.05em;
     }
   </style>
+  <script>
+    // Dark mode handling
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggle = document.getElementById('dark-mode-toggle');
+      if (toggle) {
+        // Check for saved preference
+        const prefersDark = localStorage.getItem('darkMode') === 'true';
+        const isDark = prefersDark;
+        
+        if (isDark) {
+          document.body.classList.add('dark-mode');
+          toggle.textContent = '☀️';
+        }
+        
+        // Toggle function
+        toggle.addEventListener('click', function() {
+          document.body.classList.toggle('dark-mode');
+          const isDark = document.body.classList.contains('dark-mode');
+          localStorage.setItem('darkMode', isDark);
+          toggle.textContent = isDark ? '☀️' : '🌙';
+        });
+      }
+    });
+  </script>
 </head>
 <body>
   <header>
