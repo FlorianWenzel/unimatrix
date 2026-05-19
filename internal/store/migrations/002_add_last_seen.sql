@@ -1,2 +1,3 @@
 -- Add last_seen timestamp to track drone activity
-ALTER TABLE drones ADD COLUMN last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+-- Note: This migration was likely a duplicate and may not be necessary. 
+-- The column was already added in the initial schema.
