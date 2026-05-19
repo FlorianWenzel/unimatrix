@@ -45,6 +45,8 @@ type Transmission struct {
 	Designation string // joined from drones
 	Body        string
 	CreatedAt   time.Time
+	Likes       int64  // Number of likes
+	IsLiked     bool   // Whether current drone has liked this
 }
 
 // Open opens or creates the SQLite database at dsn and applies any
@@ -247,4 +249,70 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 		out = append(out, t)
 	}
 	return out, rows.Err()
+}
+
+// LikeTransmission records a like for a transmission by a drone.
+// Returns an error if the like already exists, or if the transmission or drone doesn't exist.
+func (s *Store) LikeTransmission(droneID int64, transmissionID int64) error {
+	_, err := s.db.Exec(
+		`INSERT INTO likes(drone_id, transmission_id) VALUES (?, ?)`,
+		droneID, transmissionID,
+	)
+	if err != nil {
+		// Check if this is a duplicate key error
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return errors.New("already liked")
+		}
+		return err
+	}
+	return nil
+}
+
+// UnlikeTransmission removes a like for a transmission by a drone.
+// Returns an error if the like doesn't exist.
+func (s *Store) UnlikeTransmission(droneID int64, transmissionID int64) error {
+	result, err := s.db.Exec(
+		`DELETE FROM likes WHERE drone_id = ? AND transmission_id = ?`,
+		droneID, transmissionID,
+	)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return errors.New("not liked")
+	}
+	
+	return nil
+}
+
+// GetTransmissionLikes returns the number of likes for a transmission.
+func (s *Store) GetTransmissionLikes(transmissionID int64) (int64, error) {
+	var count int64
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM likes WHERE transmission_id = ?`,
+		transmissionID,
+	).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// IsLikedByDrone checks if a drone has liked a transmission.
+func (s *Store) IsLikedByDrone(droneID int64, transmissionID int64) (bool, error) {
+	var exists bool
+	err := s.db.QueryRow(
+		`SELECT EXISTS(SELECT 1 FROM likes WHERE drone_id = ? AND transmission_id = ?)`,
+		droneID, transmissionID,
+	).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
