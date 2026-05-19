@@ -1,0 +1,78 @@
+# Auto-rollout CronJob — picks up new :latest image digests every 5 min.
+# Each fire issues `kubectl rollout restart deployment/unimatrix`, which
+# the imagePullPolicy: Always on the Deployment turns into a fresh pull
+# of ghcr.io/florianwenzel/unimatrix:latest. Cheaper and simpler than
+# argocd-image-updater for a single-app setup; ArgoCD manages the
+# manifest, the CronJob handles digest-only drift on the floating tag.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: unimatrix-rolloutbot
+  namespace: unimatrix
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: unimatrix-rolloutbot
+  namespace: unimatrix
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["unimatrix"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: unimatrix-rolloutbot
+  namespace: unimatrix
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: unimatrix-rolloutbot
+subjects:
+  - kind: ServiceAccount
+    name: unimatrix-rolloutbot
+    namespace: unimatrix
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: auto-rollout
+  namespace: unimatrix
+spec:
+  schedule: "*/5 * * * *"      # every 5 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: unimatrix-rolloutbot
+          restartPolicy: Never
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:1.31
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  # patch the rollout-restart annotation — picks up any
+                  # new :latest digest via imagePullPolicy: Always.
+                  kubectl -n unimatrix patch deployment unimatrix \
+                    --type=merge \
+                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$(date -u +%FT%TZ)\"}}}}}"
+              resources:
+                requests: { cpu: "10m", memory: "32Mi" }
+                limits:   { cpu: "100m", memory: "64Mi" }
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1001
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
