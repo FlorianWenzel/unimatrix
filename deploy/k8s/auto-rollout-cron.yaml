@@ -55,21 +55,20 @@ spec:
           restartPolicy: Never
           containers:
             - name: kubectl
-              # Pinned to a small, stable, k3s-native kubectl image.
-              # NB: bitnami/kubectl:1.31 (minor-only tag) was unreliable
-              # due to Bitnami registry churn — full-version Rancher image
-              # is more predictable.
+              # Small, stable, k3s-native kubectl image. The image is
+              # built on a shell-less base (no /bin/sh), so we invoke
+              # kubectl directly — `kubectl rollout restart` already
+              # sets the kubectl.kubernetes.io/restartedAt annotation,
+              # which combined with imagePullPolicy: Always picks up
+              # any new :latest digest.
               image: rancher/kubectl:v1.31.4
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  set -eu
-                  # patch the rollout-restart annotation — picks up any
-                  # new :latest digest via imagePullPolicy: Always.
-                  kubectl -n unimatrix patch deployment unimatrix \
-                    --type=merge \
-                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$(date -u +%FT%TZ)\"}}}}}"
+              command: ["kubectl"]
+              args:
+                - "-n"
+                - "unimatrix"
+                - "rollout"
+                - "restart"
+                - "deployment/unimatrix"
               resources:
                 requests: { cpu: "10m", memory: "32Mi" }
                 limits:   { cpu: "100m", memory: "64Mi" }
