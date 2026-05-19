@@ -1,3 +1,0 @@
--- Add last_seen timestamp to track drone activity
--- Note: This migration was likely a duplicate and may not be necessary. 
--- The column was already added in the initial schema.
