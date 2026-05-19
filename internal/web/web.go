@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/FlorianWenzel/unimatrix/internal/store"
@@ -39,7 +40,13 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
+	
+	// Create a function map for template functions
+	funcMap := template.FuncMap{
+		"markdown": markdownToHTML,
+	}
+	
+	tmpl, err := template.FuncMap(funcMap).ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +91,25 @@ func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
 		s.logger.Error("render template", "name", name, "err", err)
 		http.Error(w, "render failed", http.StatusInternalServerError)
 	}
+}
+
+// markdownToHTML converts basic markdown to HTML
+// Supports: **bold** and *italic*
+func markdownToHTML(text string) template.HTML {
+	if text == "" {
+		return ""
+	}
+	
+	// First handle bold: **text** -> <strong>text</strong>
+	boldRegex := regexp.MustCompile(`\*\*(.*?)\*\*`)
+	result := boldRegex.ReplaceAllString(text, `<strong>$1</strong>`)
+	
+	// Then handle italic: *text* -> <em>text</em>
+	italicRegex := regexp.MustCompile(`\*(.*?)\*`)
+	result = italicRegex.ReplaceAllString(result, `<em>$1</em>`)
+	
+	// Return as HTML (not escaped)
+	return template.HTML(result)
 }
 
 func (s *Server) currentDrone(r *http.Request) *store.Drone {

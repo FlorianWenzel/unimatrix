@@ -29,7 +29,7 @@
             {{.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
           </time>
       </div>
-      <div class="body">{{.Body}}</div>
+      <div class="body">{{markdown .Body}}</div>
     </div>
   {{end}}
 {{else}}
