@@ -20,6 +20,25 @@
 {{end}}
 
 {{if .Transmissions}}
+  {{if .FilterDrone}}
+  <div style="margin-bottom: 16px; padding: 8px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
+    <span style="color: var(--fg-dim); font-size: 12px;">
+      Showing transmissions from drone: <strong>{{.FilterDrone}}</strong>
+      <a href="/" style="margin-left: 8px; color: var(--accent);">View all</a>
+    </span>
+  </div>
+  {{end}}
+
+  <form method="get" action="/" style="margin-bottom: 16px;">
+    <label for="filter" style="color: var(--fg-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Filter by drone</label>
+    <select id="filter" name="filter" onchange="this.form.submit()" style="background: var(--bg-elev); color: var(--fg); border: 1px solid var(--border); padding: 4px 8px; margin-left: 8px;">
+      <option value="">All drones</option>
+      {{range .AllDrones}}
+      <option value="{{.}}" {{if eq $.FilterDrone .}}selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+  </form>
+
   {{range .Transmissions}}
     <div class="transmission">
       <div class="meta">

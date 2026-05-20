@@ -248,3 +248,54 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 	}
 	return out, rows.Err()
 }
+
+// ListTransmissionsByDrone returns transmissions from a specific drone, newest first.
+func (s *Store) ListTransmissionsByDrone(designation string, limit int) ([]Transmission, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.db.Query(
+		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
+		  WHERE d.designation = ?
+		  ORDER BY t.created_at DESC, t.id DESC
+		  LIMIT ?`, designation, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []Transmission
+	for rows.Next() {
+		var t Transmission
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// ListAllDroneDesignations returns all unique drone designations that have made transmissions.
+func (s *Store) ListAllDroneDesignations() ([]string, error) {
+	rows, err := s.db.Query(
+		`SELECT DISTINCT d.designation 
+		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
+		   ORDER BY d.designation`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var designations []string
+	for rows.Next() {
+		var designation string
+		if err := rows.Scan(&designation); err != nil {
+			return nil, err
+		}
+		designations = append(designations, designation)
+	}
+	return designations, rows.Err()
+}

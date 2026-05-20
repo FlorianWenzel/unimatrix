@@ -73,10 +73,12 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 type pageData struct {
-	Title         string
-	Drone         *store.Drone // nil if anonymous
-	Transmissions []store.Transmission
-	Flash         string
+	Title             string
+	Drone             *store.Drone // nil if anonymous
+	Transmissions     []store.Transmission
+	Flash             string
+	FilterDrone       string
+	AllDrones         []string
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -101,16 +103,36 @@ func (s *Server) currentDrone(r *http.Request) *store.Drone {
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	txs, err := s.store.ListTransmissions(50)
+	filterDrone := r.URL.Query().Get("filter")
+	
+	// Get all unique drone designations
+	allDrones, err := s.store.ListAllDroneDesignations()
+	if err != nil {
+		s.logger.Error("list drone designations", "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	
+	var txs []store.Transmission
+	if filterDrone != "" {
+		// Filter by specific drone designation
+		txs, err = s.store.ListTransmissionsByDrone(filterDrone, 50)
+	} else {
+		// Show all transmissions
+		txs, err = s.store.ListTransmissions(50)
+	}
 	if err != nil {
 		s.logger.Error("list transmissions", "err", err)
 		http.Error(w, "the hive falters", http.StatusInternalServerError)
 		return
 	}
+	
 	s.render(w, "home.html", pageData{
 		Title:         "The Collective",
 		Drone:         s.currentDrone(r),
 		Transmissions: txs,
+		FilterDrone:   filterDrone,
+		AllDrones:     allDrones,
 	})
 }
 
