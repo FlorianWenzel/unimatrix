@@ -52,6 +52,12 @@
                 style="margin-left: 8px; font-size: 12px;">
           copy link
         </button>
+        {{if and $.Drone (eq $.Drone.ID .DroneID)}}
+        <a href="/transmission/{{.ID}}/edit" 
+           style="margin-left: 8px; color: var(--accent); font-size: 12px;">
+          edit
+        </a>
+        {{end}}
       </div>
       <div class="body">{{.Body}}</div>
     </div>

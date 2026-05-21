@@ -299,3 +299,45 @@ func (s *Store) ListAllDroneDesignations() ([]string, error) {
 	}
 	return designations, rows.Err()
 }
+
+// EditTransmission updates the body of an existing transmission if it's within 5 minutes.
+// Returns an error if the transmission doesn't exist, doesn't belong to the drone, or is too old.
+func (s *Store) EditTransmission(droneID int64, transmissionID int64, newBody string) error {
+	newBody = strings.TrimSpace(newBody)
+	if newBody == "" {
+		return errors.New("transmission body is empty")
+	}
+	if len(newBody) > 500 {
+		return errors.New("transmission exceeds 500 characters")
+	}
+	
+	// Check if transmission exists and belongs to drone
+	var createdAt time.Time
+	err := s.db.QueryRow(
+		`SELECT created_at FROM transmissions WHERE id = ? AND drone_id = ?`,
+		transmissionID, droneID,
+	).Scan(&createdAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("transmission not found or not owned by drone")
+		}
+		return err
+	}
+	
+	// Check if transmission is within 5-minute window
+	timeDiff := time.Since(createdAt)
+	if timeDiff > 5*time.Minute {
+		return errors.New("transmission is outside 5-minute editing window")
+	}
+	
+	// Update the transmission
+	_, err = s.db.Exec(
+		`UPDATE transmissions SET body = ? WHERE id = ?`,
+		newBody, transmissionID,
+	)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}

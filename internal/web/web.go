@@ -64,6 +64,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /login", s.loginSubmit)
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
+	mux.HandleFunc("GET /transmission/{id}/edit", s.editTransmission)
+	mux.HandleFunc("POST /transmission/{id}/edit", s.updateTransmission)
 	return mux
 }
 
