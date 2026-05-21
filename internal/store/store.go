@@ -45,6 +45,7 @@ type Transmission struct {
 	Designation string // joined from drones
 	Body        string
 	CreatedAt   time.Time
+	Likes       int64  // Number of acknowledgments
 }
 
 // Open opens or creates the SQLite database at dsn and applies any
