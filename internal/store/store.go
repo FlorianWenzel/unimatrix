@@ -301,6 +301,53 @@ func (s *Store) ListAllDroneDesignations() ([]string, error) {
 	return designations, rows.Err()
 }
 
+// GetTransmissionLikes returns the number of likes for a transmission.
+func (s *Store) GetTransmissionLikes(transmissionID int64) (int, error) {
+	var count int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM likes WHERE transmission_id = ?`,
+		transmissionID,
+	).Scan(&count)
+	return count, err
+}
+
+// IsAcknowledgedByDrone checks if a drone has acknowledged a transmission.
+func (s *Store) IsAcknowledgedByDrone(droneID, transmissionID int64) (bool, error) {
+	var count int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM likes WHERE drone_id = ? AND transmission_id = ?`,
+		droneID, transmissionID,
+	).Scan(&count)
+	return count > 0, err
+}
+
+// GetTopTransmissions returns the top 5 transmissions with the most likes.
+func (s *Store) GetTopTransmissions() ([]Transmission, error) {
+	rows, err := s.db.Query(
+		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at, COUNT(l.transmission_id) as likes
+		   FROM transmissions t 
+		   JOIN drones d ON d.id = t.drone_id
+		   LEFT JOIN likes l ON l.transmission_id = t.id
+		   GROUP BY t.id, t.drone_id, d.designation, t.body, t.created_at
+		   ORDER BY likes DESC, t.created_at DESC
+		   LIMIT 5`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []Transmission
+	for rows.Next() {
+		var t Transmission
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt, &t.Likes); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
 // TransmissionByID looks up a transmission by primary key. Returns nil, nil if not found.
 func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
 	var t Transmission
@@ -330,6 +377,15 @@ func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
 func (s *Store) LikeTransmission(droneID, transmissionID int64) error {
 	_, err := s.db.Exec(
 		`INSERT OR IGNORE INTO likes(drone_id, transmission_id) VALUES (?, ?)`,
+		droneID, transmissionID,
+	)
+	return err
+}
+
+// UnlikeTransmission removes an acknowledgment for a transmission by a drone.
+func (s *Store) UnlikeTransmission(droneID, transmissionID int64) error {
+	_, err := s.db.Exec(
+		`DELETE FROM likes WHERE drone_id = ? AND transmission_id = ?`,
 		droneID, transmissionID,
 	)
 	return err
