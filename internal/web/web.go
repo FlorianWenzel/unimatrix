@@ -5,10 +5,12 @@ package web
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/FlorianWenzel/unimatrix/internal/store"
@@ -64,6 +66,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /login", s.loginSubmit)
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
+	mux.HandleFunc("POST /like", s.likeTransmission)
 	return mux
 }
 
@@ -79,6 +82,7 @@ type pageData struct {
 	Flash             string
 	FilterDrone       string
 	AllDrones         []string
+	TopTransmissions  []store.Transmission
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -127,12 +131,21 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Get top transmissions by likes
+	topTxs, err := s.store.GetTopTransmissions()
+	if err != nil {
+		s.logger.Error("get top transmissions", "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	
 	s.render(w, "home.html", pageData{
 		Title:         "The Collective",
 		Drone:         s.currentDrone(r),
 		Transmissions: txs,
 		FilterDrone:   filterDrone,
 		AllDrones:     allDrones,
+		TopTransmissions: topTxs,
 	})
 }
 
@@ -223,4 +236,51 @@ func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
 		s.logger.Warn("post transmission", "drone", d.Designation, "err", err)
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
+	d := s.currentDrone(r)
+	if d == nil {
+		http.Error(w, "not authorized", http.StatusUnauthorized)
+		return
+	}
+	
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	
+	transmissionIDStr := r.PostFormValue("id")
+	if transmissionIDStr == "" {
+		http.Error(w, "missing transmission ID", http.StatusBadRequest)
+		return
+	}
+	
+	// Convert to int64
+	transmissionID, err := strconv.ParseInt(transmissionIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid transmission ID", http.StatusBadRequest)
+		return
+	}
+	
+	// Check if transmission exists
+	tx, err := s.store.TransmissionByID(transmissionID)
+	if err != nil || tx == nil {
+		http.Error(w, "transmission not found", http.StatusNotFound)
+		return
+	}
+	
+	// Record the like
+	if err := s.store.LikeTransmission(d.ID, transmissionID); err != nil {
+		s.logger.Error("like transmission", "drone", d.Designation, "id", transmissionID, "err", err)
+		http.Error(w, "failed to like transmission", http.StatusInternalServerError)
+		return
+	}
+	
+	// Return JSON response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"likes":   tx.Likes + 1,
+	})
 }

@@ -45,6 +45,7 @@ type Transmission struct {
 	Designation string // joined from drones
 	Body        string
 	CreatedAt   time.Time
+	Likes       int
 }
 
 // Open opens or creates the SQLite database at dsn and applies any
@@ -298,4 +299,38 @@ func (s *Store) ListAllDroneDesignations() ([]string, error) {
 		designations = append(designations, designation)
 	}
 	return designations, rows.Err()
+}
+
+// TransmissionByID looks up a transmission by primary key. Returns nil, nil if not found.
+func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
+	var t Transmission
+	err := s.db.QueryRow(
+		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
+		  WHERE t.id = ?`, id,
+	).Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	
+	// Get the like count for this transmission
+	likes, err := s.GetTransmissionLikes(t.ID)
+	if err != nil {
+		return nil, err
+	}
+	t.Likes = likes
+	
+	return &t, nil
+}
+
+// LikeTransmission records an acknowledgment for a transmission by a drone.
+func (s *Store) LikeTransmission(droneID, transmissionID int64) error {
+	_, err := s.db.Exec(
+		`INSERT OR IGNORE INTO likes(drone_id, transmission_id) VALUES (?, ?)`,
+		droneID, transmissionID,
+	)
+	return err
 }

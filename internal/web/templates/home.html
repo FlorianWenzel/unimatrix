@@ -59,4 +59,21 @@
 {{else}}
   <p style="color: var(--fg-dim)">The collective is silent. No transmissions yet.</p>
 {{end}}
+
+{{if .TopTransmissions}}
+  <div style="margin-top: 40px; padding: 16px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
+    <h2>Top Transmissions</h2>
+    <ol style="list-style-type: none; padding-left: 0; margin: 0;">
+      {{range .TopTransmissions}}
+      <li style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid var(--border);">
+        <div class="meta">
+          <span class="designation">{{.Designation}}</span>
+          · <span style="color: var(--accent); font-weight: bold;">{{.Likes}} acknowledgments</span>
+        </div>
+        <div class="body">{{.Body}}</div>
+      </li>
+      {{end}}
+    </ol>
+  </div>
+{{end}}
 {{end}}
