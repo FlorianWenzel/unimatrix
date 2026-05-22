@@ -136,7 +136,8 @@
     <a class="brand" href="/">unimatrix</a>
     <nav>
       {{if .Drone}}
-        <span style="color: var(--fg-dim)">{{.Drone.Designation}} (assimilated: {{.Drone.CreatedAt.Format "2006-01-02"}})</span>
+        <a href="/profile" style="color: var(--accent);">{{.Drone.Designation}}</a>
+        <span style="color: var(--fg-dim); margin: 0 8px;">(assimilated: {{.Drone.CreatedAt.Format "2006-01-02"}})</span>
         <form method="post" action="/logout" style="display:inline">
           <button class="inline" type="submit">logout</button>
         </form>

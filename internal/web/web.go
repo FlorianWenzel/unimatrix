@@ -64,6 +64,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /login", s.loginSubmit)
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
+	mux.HandleFunc("GET /profile", s.profile)
 	return mux
 }
 
@@ -133,6 +134,30 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		Transmissions: txs,
 		FilterDrone:   filterDrone,
 		AllDrones:     allDrones,
+	})
+}
+
+func (s *Server) profile(w http.ResponseWriter, r *http.Request) {
+	d := s.currentDrone(r)
+	if d == nil {
+		s.render(w, "profile.html", pageData{
+			Title: "Profile",
+		})
+		return
+	}
+	
+	// Get recent transmissions for this drone
+	txs, err := s.store.ListTransmissionsByDrone(d.Designation, 10)
+	if err != nil {
+		s.logger.Error("list transmissions by drone", "drone", d.Designation, "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	
+	s.render(w, "profile.html", pageData{
+		Title:         "Profile",
+		Drone:         d,
+		Transmissions: txs,
 	})
 }
 

@@ -1,0 +1,40 @@
+{{define "profile.html"}}{{template "base" .}}{{end}}
+
+{{define "content"}}
+<h1>Profile</h1>
+
+{{if .Drone}}
+<div style="margin: 32px auto; padding: 24px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; max-width: 500px;">
+  <div style="text-align: center;">
+    <h2 style="color: var(--accent);">{{.Drone.Designation}}</h2>
+    <p style="color: var(--fg-dim); margin: 16px 0;">
+      Assimilated on {{.Drone.CreatedAt.Format "2006-01-02"}} at {{.Drone.CreatedAt.Format "15:04 UTC"}}
+    </p>
+  </div>
+  
+  <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+    <h3 style="color: var(--accent); margin-bottom: 10px;">Recent Transmissions</h3>
+    {{if .Transmissions}}
+    <ul style="list-style-type: none; padding: 0;">
+      {{range .Transmissions}}
+      <li style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid var(--border);">
+        <div style="color: var(--fg-dim); font-size: 12px;">
+          {{.CreatedAt.Format "2006-01-02 15:04 UTC"}}
+        </div>
+        <div>{{.Body}}</div>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p style="color: var(--fg-dim);">No transmissions yet.</p>
+    {{end}}
+  </div>
+  
+  <div style="margin-top: 30px; text-align: center;">
+    <a href="/logout" style="background: var(--danger); color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em;">Logout</a>
+  </div>
+</div>
+{{else}}
+<p>You are not connected to the collective. <a href="/login">Connect</a> to view your profile.</p>
+{{end}}
+{{end}}
