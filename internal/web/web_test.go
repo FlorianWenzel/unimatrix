@@ -239,7 +239,7 @@ func TestNotFoundPageViaHandler(t *testing.T) {
 	s := newTestServer(t)
 	h := s.Handler()
 
-	req := httptest.NewRequest(http.MethodGet, "/nonexistent/path", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sector-7g/uncharted", nil)
 	rec := httptest.NewRecorder()
 
 	h.ServeHTTP(rec, req)
@@ -251,8 +251,11 @@ func TestNotFoundPageViaHandler(t *testing.T) {
 	if !strings.Contains(body, "Sector Uncharted") {
 		t.Fatal("expected 'Sector Uncharted' in response body")
 	}
-	if !strings.Contains(body, "/\">") || !strings.Contains(body, "Return to the collective") {
-		t.Fatal("expected link back to collective in response body")
+	if !strings.Contains(body, `href="/"`) {
+		t.Fatal("expected link back to collective (/) in response body")
+	}
+	if !strings.Contains(body, "Return to the collective") {
+		t.Fatal("expected 'Return to the collective' in response body")
 	}
 }
 
