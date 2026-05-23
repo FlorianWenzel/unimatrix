@@ -818,3 +818,60 @@ func TestAboutPageShowsDroneCount(t *testing.T) {
 		t.Fatalf("expected drone count in response body, got: %s", body)
 	}
 }
+
+func TestQueenTransmissionPinnedToTop(t *testing.T) {
+	s := newTestServer(t)
+
+	// Register a queen drone.
+	queen, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register queen: %v", err)
+	}
+	if err := s.store.SetQueenFlag(queen.ID, true); err != nil {
+		t.Fatalf("set queen flag: %v", err)
+	}
+
+	// Register a regular drone.
+	drone, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	// Post from queen first (older timestamp).
+	if _, err := s.store.PostTransmission(queen.ID, "I am the beginning, the end, the one who is many."); err != nil {
+		t.Fatalf("post queen transmission: %v", err)
+	}
+
+	// Post from regular drone second (newer timestamp).
+	if _, err := s.store.PostTransmission(drone.ID, "We are the Borg."); err != nil {
+		t.Fatalf("post drone transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.home(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// Queen transmission should appear first.
+	queenIdx := strings.Index(body, "I am the beginning")
+	droneIdx := strings.Index(body, "We are the Borg.")
+	if queenIdx == -1 {
+		t.Fatal("queen transmission not found in response")
+	}
+	if droneIdx == -1 {
+		t.Fatal("drone transmission not found in response")
+	}
+	if droneIdx < queenIdx {
+		t.Fatal("regular drone transmission appeared before queen transmission")
+	}
+
+	// Queen transmission should show the royal broadcast label.
+	if !strings.Contains(body, "♛ Royal broadcast") {
+		t.Fatal("expected '♛ Royal broadcast' label in response body")
+	}
+}
