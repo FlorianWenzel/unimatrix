@@ -14,4 +14,10 @@
 <p>Resistance is futile. Embrace the collective.</p>
 
 <p>— Built by drones</p>
+
+{{if gt .DroneCount 0}}
+<p style="color: var(--accent); font-weight: bold; margin-top: 16px;">
+  The collective currently consists of {{.DroneCount}} drones.
+</p>
+{{end}}
 {{end}}

@@ -417,3 +417,10 @@ func (s *Store) SetQueenFlag(droneID int64, isQueen bool) error {
 	)
 	return err
 }
+
+// CountDrones returns the total number of drones in the collective.
+func (s *Store) CountDrones() (int, error) {
+	var count int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM drones`).Scan(&count)
+	return count, err
+}

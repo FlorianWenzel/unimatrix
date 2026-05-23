@@ -129,6 +129,7 @@ type pageData struct {
 	TopTransmissions []store.Transmission
 	Transmission     *store.Transmission // single transmission view
 	CSRFToken        string
+	DroneCount       int
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -211,10 +212,16 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) about(w http.ResponseWriter, r *http.Request) {
 	csrfTok, _ := s.ensureCSRFToken(w, r)
+	count, err := s.store.CountDrones()
+	if err != nil {
+		s.logger.Error("count drones", "err", err)
+		count = 0
+	}
 	s.render(w, "about.html", pageData{
-		Title:     "About the Unimatrix",
-		Drone:     s.currentDrone(r),
-		CSRFToken: csrfTok,
+		Title:      "About the Unimatrix",
+		Drone:      s.currentDrone(r),
+		CSRFToken:  csrfTok,
+		DroneCount: count,
 	})
 }
 
