@@ -1,6 +1,6 @@
 {{define "login.html"}}{{template "base" .}}{{end}}
 
-{{define "login_content"}}
+{{define "content"}}
 <h1>Connect</h1>
 <form method="post" action="/login">
   <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
