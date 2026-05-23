@@ -1,0 +1,13 @@
+{
+  "name": "unimatrix-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cypress end-to-end test suite for unimatrix. The application itself is pure Go — this package.json exists only to vendor Cypress.",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^13.15.0"
+  }
+}
