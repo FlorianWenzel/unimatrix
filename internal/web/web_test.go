@@ -597,3 +597,190 @@ func TestRobotsTxt(t *testing.T) {
 		t.Fatal("expected 'Allow: /' in response body")
 	}
 }
+
+func TestLoginSuccess(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	d, err := s.store.RegisterDrone("Three of Five", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	// GET /login to obtain CSRF token cookie.
+	getReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	getRec := httptest.NewRecorder()
+	h.ServeHTTP(getRec, getReq)
+
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("GET /login: want 200, got %d", getRec.Code)
+	}
+
+	// Extract CSRF token from the Set-Cookie header.
+	var csrfTok string
+	for _, c := range getRec.Result().Cookies() {
+		if c.Name == csrfCookieName {
+			csrfTok = c.Value
+			break
+		}
+	}
+	if csrfTok == "" {
+		t.Fatal("no CSRF cookie set on GET /login")
+	}
+
+	// POST /login with valid credentials + CSRF token.
+	form := url.Values{"designation": {d.Designation}, "access_code": {"alcove"}, "_csrf": {csrfTok}}
+	postReq := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Carry the CSRF cookie into the POST.
+	postReq.AddCookie(&http.Cookie{Name: csrfCookieName, Value: csrfTok})
+	postRec := httptest.NewRecorder()
+	h.ServeHTTP(postRec, postReq)
+
+	if postRec.Code != http.StatusSeeOther {
+		t.Fatalf("POST /login: want 303, got %d (body: %s)", postRec.Code, postRec.Body.String())
+	}
+
+	// Assert redirect location is /.
+	if loc := postRec.Header().Get("Location"); loc != "/" {
+		t.Fatalf("POST /login: want redirect to /, got %q", loc)
+	}
+
+	// Assert session cookie set.
+	var sessionSet bool
+	for _, c := range postRec.Result().Cookies() {
+		if c.Name == sessionCookieName && c.Value != "" {
+			sessionSet = true
+			break
+		}
+	}
+	if !sessionSet {
+		t.Fatal("no session cookie set after successful login")
+	}
+}
+
+func TestLoginFailure(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	// GET /login to obtain CSRF token cookie.
+	getReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	getRec := httptest.NewRecorder()
+	h.ServeHTTP(getRec, getReq)
+
+	var csrfTok string
+	for _, c := range getRec.Result().Cookies() {
+		if c.Name == csrfCookieName {
+			csrfTok = c.Value
+			break
+		}
+	}
+	if csrfTok == "" {
+		t.Fatal("no CSRF cookie set on GET /login")
+	}
+
+	// POST /login with invalid credentials.
+	form := url.Values{"designation": {"Nonexistent"}, "access_code": {"wrong"}, "_csrf": {csrfTok}}
+	postReq := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	postReq.AddCookie(&http.Cookie{Name: csrfCookieName, Value: csrfTok})
+	postRec := httptest.NewRecorder()
+	h.ServeHTTP(postRec, postReq)
+
+	if postRec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", postRec.Code)
+	}
+	body := postRec.Body.String()
+	if !strings.Contains(body, "does not recognize") {
+		t.Fatal("expected 'does not recognize' flash message on failed login")
+	}
+}
+
+func TestLogoutClearsSession(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	d, err := s.store.RegisterDrone("Four of Seven", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	// Step 1: GET /login to obtain CSRF token.
+	getReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	getRec := httptest.NewRecorder()
+	h.ServeHTTP(getRec, getReq)
+
+	var csrfTok string
+	for _, c := range getRec.Result().Cookies() {
+		if c.Name == csrfCookieName {
+			csrfTok = c.Value
+			break
+		}
+	}
+	if csrfTok == "" {
+		t.Fatal("no CSRF cookie set on GET /login")
+	}
+
+	// Step 2: POST /login to authenticate and obtain session cookie.
+	form := url.Values{"designation": {d.Designation}, "access_code": {"alcove"}, "_csrf": {csrfTok}}
+	loginReq := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	loginReq.AddCookie(&http.Cookie{Name: csrfCookieName, Value: csrfTok})
+	loginRec := httptest.NewRecorder()
+	h.ServeHTTP(loginRec, loginReq)
+
+	if loginRec.Code != http.StatusSeeOther {
+		t.Fatalf("login: want 303, got %d", loginRec.Code)
+	}
+
+	// Extract session cookie from login response.
+	var sessionVal string
+	for _, c := range loginRec.Result().Cookies() {
+		if c.Name == sessionCookieName {
+			sessionVal = c.Value
+			break
+		}
+	}
+	if sessionVal == "" {
+		t.Fatal("no session cookie after login")
+	}
+
+	// Step 3: GET any page to obtain a fresh CSRF token (since CSRF cookie is still valid).
+	homeReq := httptest.NewRequest(http.MethodGet, "/", nil)
+	homeReq.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionVal})
+	homeRec := httptest.NewRecorder()
+	h.ServeHTTP(homeRec, homeReq)
+
+	// Re-extract CSRF token (may be the same or new).
+	for _, c := range homeRec.Result().Cookies() {
+		if c.Name == csrfCookieName {
+			csrfTok = c.Value
+			break
+		}
+	}
+
+	// Step 4: POST /logout with session + CSRF cookies.
+	logoutForm := url.Values{"_csrf": {csrfTok}}
+	logoutReq := httptest.NewRequest(http.MethodPost, "/logout", strings.NewReader(logoutForm.Encode()))
+	logoutReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	logoutReq.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionVal})
+	logoutReq.AddCookie(&http.Cookie{Name: csrfCookieName, Value: csrfTok})
+	logoutRec := httptest.NewRecorder()
+	h.ServeHTTP(logoutRec, logoutReq)
+
+	if logoutRec.Code != http.StatusSeeOther {
+		t.Fatalf("POST /logout: want 303, got %d", logoutRec.Code)
+	}
+
+	// Assert session cookie is cleared (MaxAge=-1).
+	var cleared bool
+	for _, c := range logoutRec.Result().Cookies() {
+		if c.Name == sessionCookieName && c.MaxAge < 0 {
+			cleared = true
+			break
+		}
+	}
+	if !cleared {
+		t.Fatal("session cookie not cleared after logout")
+	}
+}
