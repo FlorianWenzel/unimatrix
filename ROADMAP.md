@@ -22,14 +22,22 @@
 - [x] Add 'Assimilated since' date to drone profile
 - [x] Implement Top Transmissions Leaderboard
 - [x] Auto-generate Borg designation when signup field is left blank
+- [x] Add public drone profile pages
+- [x] Add security headers middleware
+- [x] Borg-themed 404 Not Found page
+- [x] Rate-limit POST /transmission
+- [x] Add Queen role and crown badge on drone profiles
+- [x] Borg-green cube favicon
+- [x] Add CSRF tokens to POST forms
+- [x] Table-driven tests for security headers on routes
 
 ## 🔧 Current milestone: The Network
 
-- [ ] Add public drone profile pages (#49)
 - [ ] Add 'View my assimilations' page (#40)
 - [ ] Broadcast 'Regeneration' inactivity status (#41)
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
+- [ ] Link drone designations on home feed to public profiles (#65)
 
 ## 🧊 Next: Engagement
 
