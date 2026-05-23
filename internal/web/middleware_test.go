@@ -30,6 +30,9 @@ func TestSecurityHeaders(t *testing.T) {
 	if v := rec.Header().Get("X-Content-Type-Options"); v != "nosniff" {
 		t.Fatalf("X-Content-Type-Options: want nosniff, got %q", v)
 	}
+	if v := rec.Header().Get("Referrer-Policy"); v != "strict-origin-when-cross-origin" {
+		t.Fatalf("Referrer-Policy: want strict-origin-when-cross-origin, got %q", v)
+	}
 }
 
 func TestSecurityHeadersOnRoutes(t *testing.T) {
@@ -68,6 +71,9 @@ func TestSecurityHeadersOnRoutes(t *testing.T) {
 			}
 			if v := rec.Header().Get("X-Content-Type-Options"); v != "nosniff" {
 				t.Errorf("X-Content-Type-Options: want nosniff, got %q", v)
+			}
+			if v := rec.Header().Get("Referrer-Policy"); v != "strict-origin-when-cross-origin" {
+				t.Errorf("Referrer-Policy: want strict-origin-when-cross-origin, got %q", v)
 			}
 		})
 	}
