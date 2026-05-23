@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -26,5 +27,44 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 	if v := rec.Header().Get("X-Content-Type-Options"); v != "nosniff" {
 		t.Fatalf("X-Content-Type-Options: want nosniff, got %q", v)
+	}
+}
+
+func TestSecurityHeadersOnRoutes(t *testing.T) {
+	s := newTestServer(t)
+
+	tests := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodGet, "/", ""},
+		{http.MethodGet, "/about", ""},
+		{http.MethodPost, "/register", "designation=&access_code="},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			var req *http.Request
+			if tt.body != "" {
+				req = httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			} else {
+				req = httptest.NewRequest(tt.method, tt.path, nil)
+			}
+			rec := httptest.NewRecorder()
+
+			s.Handler().ServeHTTP(rec, req)
+
+			if v := rec.Header().Get("Content-Security-Policy"); v == "" {
+				t.Errorf("Content-Security-Policy header missing")
+			}
+			if v := rec.Header().Get("X-Frame-Options"); v != "DENY" {
+				t.Errorf("X-Frame-Options: want DENY, got %q", v)
+			}
+			if v := rec.Header().Get("X-Content-Type-Options"); v != "nosniff" {
+				t.Errorf("X-Content-Type-Options: want nosniff, got %q", v)
+			}
+		})
 	}
 }
