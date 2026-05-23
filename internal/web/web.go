@@ -70,7 +70,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /transmission", s.postTransmission)
 	mux.HandleFunc("POST /like", s.likeTransmission)
 	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
-	return mux
+	return SecurityHeaders(mux)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
