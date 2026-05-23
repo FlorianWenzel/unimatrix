@@ -342,6 +342,7 @@ func TestDroneProfileQueenBadge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register drone: %v", err)
 	}
+	_ = drone
 
 	// Queen profile should show badge.
 	req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
@@ -367,5 +368,47 @@ func TestDroneProfileQueenBadge(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "♛ Queen") {
 		t.Fatal("regular drone profile: expected NO '♛ Queen' badge in response body")
+	}
+}
+
+func TestFavicon(t *testing.T) {
+	s := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/favicon.ico", nil)
+	rec := httptest.NewRecorder()
+
+	s.favicon(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "image/svg+xml") {
+		t.Fatalf("want Content-Type image/svg+xml, got %q", ct)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "<svg") {
+		t.Fatal("expected SVG content in response body")
+	}
+	if !strings.Contains(body, "#5fffaf") {
+		t.Fatal("expected Borg-green (#5fffaf) in SVG")
+	}
+}
+
+func TestFaviconViaHandler(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/favicon.ico", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "image/svg+xml") {
+		t.Fatalf("want Content-Type image/svg+xml, got %q", ct)
 	}
 }
