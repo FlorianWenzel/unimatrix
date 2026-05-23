@@ -793,3 +793,28 @@ func TestLogoutClearsSession(t *testing.T) {
 		t.Fatalf("Clear-Site-Data missing expected directives, got %q", csd)
 	}
 }
+
+func TestAboutPageShowsDroneCount(t *testing.T) {
+	s := newTestServer(t)
+
+	// Register two drones.
+	if _, err := s.store.RegisterDrone("One of One", "alcove"); err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	if _, err := s.store.RegisterDrone("Two of Two", "alcove"); err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/about", nil)
+	rec := httptest.NewRecorder()
+
+	s.about(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "The collective currently consists of 2 drones") {
+		t.Fatalf("expected drone count in response body, got: %s", body)
+	}
+}
