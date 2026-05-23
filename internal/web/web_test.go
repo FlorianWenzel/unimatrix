@@ -477,7 +477,8 @@ func TestHomeFeedLinksToDroneProfile(t *testing.T) {
 		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 	body := rec.Body.String()
-	expectedLink := `<a href="/drone/` + d.Designation + `" class="designation">` + d.Designation + `</a>`
+	escapedDesignation := url.PathEscape(d.Designation)
+	expectedLink := `<a href="/drone/` + escapedDesignation + `" class="designation">` + d.Designation + `</a>`
 	if !strings.Contains(body, expectedLink) {
 		t.Fatalf("expected profile link %q in response body", expectedLink)
 	}
@@ -503,7 +504,8 @@ func TestTopTransmissionsLinksToDroneProfile(t *testing.T) {
 		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 	body := rec.Body.String()
-	expectedLink := `<a href="/drone/` + d.Designation + `" class="designation">` + d.Designation + `</a>`
+	escapedDesignation := url.PathEscape(d.Designation)
+	expectedLink := `<a href="/drone/` + escapedDesignation + `" class="designation">` + d.Designation + `</a>`
 	if !strings.Contains(body, expectedLink) {
 		t.Fatalf("expected profile link %q in response body", expectedLink)
 	}
