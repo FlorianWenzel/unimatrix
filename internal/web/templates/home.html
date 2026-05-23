@@ -6,6 +6,7 @@
 {{if .Drone}}
 <div class="compose">
   <form method="post" action="/transmission">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
     <label for="body">broadcast a transmission</label>
     <textarea id="body" name="body" maxlength="500" placeholder="state your thought packet…" required></textarea>
     <div class="char-count" id="char-count">0/500</div>

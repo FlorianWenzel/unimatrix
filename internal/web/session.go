@@ -2,6 +2,7 @@ package web
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -12,6 +13,7 @@ import (
 )
 
 const sessionCookieName = "unimatrix_session"
+const csrfCookieName = "unimatrix_csrf"
 const sessionMaxAge = 30 * 24 * time.Hour
 
 // signCookie returns a tamper-evident "<droneID>.<base64(hmac)>" value.
@@ -79,4 +81,62 @@ func (s *Server) currentDroneID(r *http.Request) int64 {
 		return 0
 	}
 	return id
+}
+
+// csrfToken generates a new random CSRF token as a base64 string.
+func csrfToken() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+// ensureCSRFToken returns a CSRF token for the request. If a valid token
+// already exists in the cookie, it is returned; otherwise a new token is
+// generated, set as a cookie, and returned. The cookie is HttpOnly=false
+// so client-side JS can read it if needed, but SameSite=Lax prevents
+// cross-site inclusion.
+func (s *Server) ensureCSRFToken(w http.ResponseWriter, r *http.Request) (string, error) {
+	c, err := r.Cookie(csrfCookieName)
+	if err == nil && c.Value != "" {
+		return c.Value, nil
+	}
+	tok, err := csrfToken()
+	if err != nil {
+		return "", err
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     csrfCookieName,
+		Value:    tok,
+		Path:     "/",
+		Expires:  time.Now().Add(sessionMaxAge),
+		HttpOnly: false,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cookieSecure,
+	})
+	return tok, nil
+}
+
+// validateCSRF returns true if the _csrf form value matches the CSRF cookie.
+func (s *Server) validateCSRF(r *http.Request) bool {
+	c, err := r.Cookie(csrfCookieName)
+	if err != nil || c.Value == "" {
+		return false
+	}
+	formValue := r.PostFormValue("_csrf")
+	if formValue == "" {
+		return false
+	}
+	return hmac.Equal([]byte(c.Value), []byte(formValue))
+}
+
+// csrfTokenFromRequest reads the CSRF token from the request cookie,
+// returning an empty string if not present.
+func (s *Server) csrfTokenFromRequest(r *http.Request) string {
+	c, err := r.Cookie(csrfCookieName)
+	if err != nil {
+		return ""
+	}
+	return c.Value
 }
