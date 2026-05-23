@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/FlorianWenzel/unimatrix/internal/store"
 )
@@ -27,6 +28,7 @@ type Server struct {
 	sessionKey   []byte
 	cookieSecure bool
 	logger       *slog.Logger
+	rateLimiter  *RateLimiter
 }
 
 // Config bundles the optional knobs for NewServer.
@@ -53,6 +55,7 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 		sessionKey:   cfg.SessionKey,
 		cookieSecure: cfg.CookieSecure,
 		logger:       cfg.Logger,
+		rateLimiter:  NewRateLimiter(),
 	}, nil
 }
 
@@ -260,6 +263,12 @@ func (s *Server) postTransmission(w http.ResponseWriter, r *http.Request) {
 	d := s.currentDrone(r)
 	if d == nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if !s.rateLimiter.Allow(d.ID, 5, time.Minute) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte("Broadcast frequency exceeded. Regenerate and retry."))
 		return
 	}
 	if err := r.ParseForm(); err != nil {

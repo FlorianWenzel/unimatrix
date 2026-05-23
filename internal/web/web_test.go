@@ -241,3 +241,88 @@ func TestNotFoundPageViaHandler(t *testing.T) {
 		t.Fatal("expected link back to collective in response body")
 	}
 }
+
+func TestPostTransmissionRateLimit(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("RateLimited", "access")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	post := func() *httptest.ResponseRecorder {
+		form := url.Values{
+			"body": {"resistance is futile"},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(d.ID, s.sessionKey),
+		})
+		rec := httptest.NewRecorder()
+		s.postTransmission(rec, req)
+		return rec
+	}
+
+	// First 5 posts should succeed (303).
+	for i := 0; i < 5; i++ {
+		rec := post()
+		if rec.Code != http.StatusSeeOther {
+			t.Fatalf("post %d: want 303, got %d", i+1, rec.Code)
+		}
+	}
+
+	// 6th post should be rate-limited (429).
+	rec := post()
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("want 429 on 6th post, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Broadcast frequency exceeded") {
+		t.Fatal("expected rate-limit message in response body")
+	}
+}
+
+func TestRateLimiterIndependentDrones(t *testing.T) {
+	s := newTestServer(t)
+
+	d1, err := s.store.RegisterDrone("Drone1", "access")
+	if err != nil {
+		t.Fatalf("register drone1: %v", err)
+	}
+	d2, err := s.store.RegisterDrone("Drone2", "access")
+	if err != nil {
+		t.Fatalf("register drone2: %v", err)
+	}
+
+	post := func(d *store.Drone) *httptest.ResponseRecorder {
+		form := url.Values{
+			"body": {"resistance is futile"},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(d.ID, s.sessionKey),
+		})
+		rec := httptest.NewRecorder()
+		s.postTransmission(rec, req)
+		return rec
+	}
+
+	// Drone 1 exhausts its limit.
+	for i := 0; i < 5; i++ {
+		if rec := post(d1); rec.Code != http.StatusSeeOther {
+			t.Fatalf("d1 post %d: want 303, got %d", i+1, rec.Code)
+		}
+	}
+	if rec := post(d1); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("d1 6th: want 429, got %d", rec.Code)
+	}
+
+	// Drone 2 should NOT be rate-limited.
+	if rec := post(d2); rec.Code != http.StatusSeeOther {
+		t.Fatalf("d2 first post: want 303, got %d", rec.Code)
+	}
+}
