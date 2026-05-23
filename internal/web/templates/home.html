@@ -1,289 +1,80 @@
-{{define "home.html"}}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="icon" type="image/svg+xml" href="/favicon.ico">
-  <title>{{.Title}} — unimatrix</title>
-  <style>
-    :root {
-      --bg: #0a0e0a;
-      --bg-elev: #11181a;
-      --fg: #c8e6c9;
-      --fg-dim: #6b8b70;
-      --accent: #5fffaf;
-      --accent-dim: #1a4a2a;
-      --danger: #ff5e7a;
-      --border: #1f2c22;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font: 14px/1.55 ui-monospace, "SF Mono", Menlo, monospace;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 12px 20px;
-      display: flex;
-      align-items: baseline;
-      gap: 20px;
-    }
-    header .brand {
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    header nav { margin-left: auto; display: flex; gap: 14px; }
-    main { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
-    h1 {
-      font-size: 18px;
-      margin: 0 0 16px;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .flash {
-      background: var(--accent-dim);
-      color: var(--accent);
-      padding: 10px 14px;
-      margin-bottom: 16px;
-      border-left: 3px solid var(--accent);
-    }
-    form { display: flex; flex-direction: column; gap: 10px; }
-    label { color: var(--fg-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-    input[type=text], input[type=password], textarea {
-      background: var(--bg-elev);
-      color: var(--fg);
-      border: 1px solid var(--border);
-      padding: 8px 10px;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    input:focus, textarea:focus { outline: 1px solid var(--accent); }
-    textarea { resize: vertical; min-height: 80px; }
-    button {
-      background: var(--accent-dim);
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      padding: 8px 16px;
-      font-family: inherit;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-    }
-    button:hover { background: var(--accent); color: var(--bg); }
-    button.inline {
-      background: none;
-      border: none;
-      color: var(--fg-dim);
-      padding: 0;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-    button.inline:hover { color: var(--danger); background: none; }
-    .transmission {
-      border-bottom: 1px dashed var(--border);
-      padding: 14px 0;
-    }
-    .transmission .meta {
-      color: var(--fg-dim);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-    .transmission .meta .designation { color: var(--accent); }
-    .transmission .body { white-space: pre-wrap; word-break: break-word; }
-    .compose { margin-bottom: 24px; padding: 14px; background: var(--bg-elev); border: 1px solid var(--border); }
-    footer {
-      color: var(--fg-dim);
-      font-size: 11px;
-      text-align: center;
-      padding: 30px 0;
-      letter-spacing: 0.05em;
-    }
-  </style>
-  <script>
-    // Dark mode handling
-    document.addEventListener('DOMContentLoaded', function() {
-      const toggle = document.getElementById('dark-mode-toggle');
-      if (toggle) {
-        // Check for saved preference
-        const prefersDark = localStorage.getItem('darkMode') === 'true';
-        const isDark = prefersDark;
-        
-        if (isDark) {
-          document.body.classList.add('dark-mode');
-          toggle.textContent = '☀️';
-        }
-        
-        // Toggle function
-        toggle.addEventListener('click', function() {
-          document.body.classList.toggle('dark-mode');
-          const isDark = document.body.classList.contains('dark-mode');
-          localStorage.setItem('darkMode', isDark);
-          toggle.textContent = isDark ? '☀️' : '🌙';
-        });
-      }
-    });
-  </script>
-</head>
-<body>
-  <header>
-    <a class="brand" href="/">unimatrix</a>
-    <nav>
-      {{if .Drone}}
-        <span style="color: var(--fg-dim)">{{.Drone.Designation}} (assimilated: {{.Drone.CreatedAt.Format "2006-01-02"}})</span>
-        <form method="post" action="/logout" style="display:inline">
-          <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-          <button class="inline" type="submit">logout</button>
-        </form>
-      {{else}}
-        <a href="/login">connect</a>
-        <a href="/register">assimilate</a>
-      {{end}}
-    </nav>
-  </header>
-  <main>
-    {{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
-    <h1>The Collective</h1>
+{{define "home.html"}}{{template "base" .}}{{end}}
 
-    {{if .Drone}}
-    <div class="compose">
-      <form method="post" action="/transmission">
-        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-        <label for="body">broadcast a transmission</label>
-        <textarea id="body" name="body" maxlength="500" placeholder="state your thought packet…" required></textarea>
-        <div class="char-count" id="char-count">0/500</div>
-        <button type="submit">transmit</button>
-      </form>
+{{define "content"}}
+<h1>The Collective</h1>
+
+{{if .Drone}}
+<div class="compose">
+  <form method="post" action="/transmission">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <label for="body">broadcast a transmission</label>
+    <textarea id="body" name="body" maxlength="500" placeholder="state your thought packet…" required></textarea>
+    <div class="char-count" id="char-count">0/500</div>
+    <button type="submit">transmit</button>
+  </form>
+</div>
+{{else}}
+<p style="color: var(--fg-dim); margin-bottom: 20px;">
+  You are not connected to the collective. <a href="/register">Assimilate</a> or
+  <a href="/login">connect</a> to broadcast a transmission.
+</p>
+{{end}}
+
+{{if .Transmissions}}
+  {{if .FilterDrone}}
+  <div style="margin-bottom: 16px; padding: 8px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
+    <span style="color: var(--fg-dim); font-size: 12px;">
+      Showing transmissions from drone: <strong>{{.FilterDrone}}</strong>
+      <a href="/" style="margin-left: 8px; color: var(--accent);">View all</a>
+    </span>
+  </div>
+  {{end}}
+
+  <form method="get" action="/" style="margin-bottom: 16px;">
+    <label for="filter" style="color: var(--fg-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Filter by drone</label>
+    <select id="filter" name="filter" onchange="this.form.submit()" style="background: var(--bg-elev); color: var(--fg); border: 1px solid var(--border); padding: 4px 8px; margin-left: 8px;">
+      <option value="">All drones</option>
+      {{range .AllDrones}}
+      <option value="{{.}}" {{if eq $.FilterDrone .}}selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+  </form>
+
+  {{range .Transmissions}}
+    <div class="transmission">
+      <div class="meta">
+        <a href="/drone/{{.Designation}}" class="designation">{{.Designation}}</a>
+        · <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
+               data-created-at="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+            {{.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
+          </time>
+        <button class="inline copy-link" 
+                data-id="{{.ID}}" 
+                style="margin-left: 8px; font-size: 12px;">
+          copy link
+        </button>
+      </div>
+      <div class="body">{{.Body}}</div>
     </div>
-    {{else}}
-    <p style="color: var(--fg-dim); margin-bottom: 20px;">
-      You are not connected to the collective. <a href="/register">Assimilate</a> or
-      <a href="/login">connect</a> to broadcast a transmission.
-    </p>
-    {{end}}
+  {{end}}
+{{else}}
+  <p style="color: var(--fg-dim)">The collective is silent. No transmissions yet.</p>
+{{end}}
 
-    {{if .Transmissions}}
-      {{if .FilterDrone}}
-      <div style="margin-bottom: 16px; padding: 8px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
-        <span style="color: var(--fg-dim); font-size: 12px;">
-          Showing transmissions from drone: <strong>{{.FilterDrone}}</strong>
-          <a href="/" style="margin-left: 8px; color: var(--accent);">View all</a>
-        </span>
-      </div>
-      {{end}}
-
-      <form method="get" action="/" style="margin-bottom: 16px;">
-        <label for="filter" style="color: var(--fg-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Filter by drone</label>
-        <select id="filter" name="filter" onchange="this.form.submit()" style="background: var(--bg-elev); color: var(--fg); border: 1px solid var(--border); padding: 4px 8px; margin-left: 8px;">
-          <option value="">All drones</option>
-          {{range .AllDrones}}
-          <option value="{{.}}" {{if eq $.FilterDrone .}}selected{{end}}>{{.}}</option>
-          {{end}}
-        </select>
-      </form>
-
-      {{range .Transmissions}}
-        <div class="transmission">
-          <div class="meta">
-            <a href="/drone/{{.Designation}}" class="designation">{{.Designation}}</a>
-            · <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
-                   data-created-at="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
-                {{.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
-              </time>
-            <button class="inline copy-link" 
-                    data-id="{{.ID}}" 
-                    style="margin-left: 8px; font-size: 12px;">
-              copy link
-            </button>
-          </div>
-          <div class="body">{{.Body}}</div>
+{{if .TopTransmissions}}
+  <div style="margin-top: 40px; padding: 16px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
+    <h2>Top Transmissions</h2>
+    <ol style="list-style-type: none; padding-left: 0; margin: 0;">
+      {{range .TopTransmissions}}
+      <li style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid var(--border);">
+        <div class="meta">
+          <a href="/drone/{{.Designation}}" class="designation">{{.Designation}}</a>
+          · <span style="color: var(--accent); font-weight: bold;">{{.Likes}} acknowledgments</span>
         </div>
+        <div class="body">{{.Body}}</div>
+      </li>
       {{end}}
-    {{else}}
-      <p style="color: var(--fg-dim)">The collective is silent. No transmissions yet.</p>
-    {{end}}
-
-    {{if .TopTransmissions}}
-      <div style="margin-top: 40px; padding: 16px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;">
-        <h2>Top Transmissions</h2>
-        <ol style="list-style-type: none; padding-left: 0; margin: 0;">
-          {{range .TopTransmissions}}
-          <li style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid var(--border);">
-            <div class="meta">
-              <a href="/drone/{{.Designation}}" class="designation">{{.Designation}}</a>
-              · <span style="color: var(--accent); font-weight: bold;">{{.Likes}} acknowledgments</span>
-            </div>
-            <div class="body">{{.Body}}</div>
-          </li>
-          {{end}}
-        </ol>
-      </div>
-    {{end}}
-  </main>
-  <footer>RESISTANCE IS FUTILE · built by drones · <a href="https://github.com/FlorianWenzel/unimatrix">source</a></footer>
-  <script>
-    // Convert UTC timestamps to local time
-    document.addEventListener('DOMContentLoaded', function() {
-      const timeElements = document.querySelectorAll('time[data-created-at]');
-      timeElements.forEach(function(timeEl) {
-        const utcString = timeEl.getAttribute('data-created-at');
-        const date = new Date(utcString);
-        // Format as local time
-        timeEl.textContent = date.toLocaleString();
-      });
-      
-      // Character count for transmission textarea
-      const textarea = document.getElementById('body');
-      const charCount = document.getElementById('char-count');
-      if (textarea && charCount) {
-        function updateCharCount() {
-          const currentLength = textarea.value.length;
-          const maxLength = parseInt(textarea.getAttribute('maxlength'));
-          charCount.textContent = currentLength + '/' + maxLength;
-          
-          // Change color based on how close we are to the limit
-          if (currentLength > maxLength * 0.9) {
-            charCount.style.color = '#ff5e7a'; // danger color when near limit
-          } else {
-            charCount.style.color = 'var(--fg-dim)';
-          }
-        }
-        
-        // Update on input events
-        textarea.addEventListener('input', updateCharCount);
-        // Initialize on page load
-        updateCharCount();
-      }
-      
-      // Copy link functionality
-      document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('copy-link')) {
-          const transmissionId = e.target.getAttribute('data-id');
-          if (transmissionId) {
-            const url = window.location.origin + '/transmission/' + transmissionId;
-            navigator.clipboard.writeText(url).then(() => {
-              // Visual feedback
-              const originalText = e.target.textContent;
-              e.target.textContent = 'copied!';
-              setTimeout(() => {
-                e.target.textContent = originalText;
-              }, 2000);
-            }).catch(err => {
-              console.error('Failed to copy: ', err);
-            });
-          }
-        }
-      });
-    });
-  </script>
-</body>
-</html>
+    </ol>
+  </div>
+{{end}}
 {{end}}
