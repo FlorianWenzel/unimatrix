@@ -48,7 +48,7 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 	tmpl := make(map[string]*template.Template)
 	// Pages that include base.html — parse each separately to avoid
 	// {{define "content"}} redefinition (Go 1.24 overwrites silently).
-	for _, page := range []string{"home", "about", "login", "register"} {
+	for _, page := range []string{"home", "about", "login", "register", "transmission"} {
 		t, err := template.ParseFS(templatesFS, "templates/base.html", "templates/"+page+".html")
 		if err != nil {
 			return nil, err
@@ -86,6 +86,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /login", s.loginSubmit)
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
+	mux.HandleFunc("GET /transmission/{id}", s.transmissionPage)
 	mux.HandleFunc("POST /like", s.likeTransmission)
 	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
 	mux.HandleFunc("/", s.notFound)
@@ -120,6 +121,7 @@ type pageData struct {
 	FilterDrone      string
 	AllDrones        []string
 	TopTransmissions []store.Transmission
+	Transmission     *store.Transmission // single transmission view
 	CSRFToken        string
 }
 
@@ -444,6 +446,32 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 		ProfileDrone:  d,
 		Transmissions: txs,
 		CSRFToken:     csrfTok,
+	})
+}
+
+func (s *Server) transmissionPage(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return
+	}
+	tx, err := s.store.TransmissionByID(id)
+	if err != nil {
+		s.logger.Error("lookup transmission", "id", id, "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	if tx == nil {
+		s.notFound(w, r)
+		return
+	}
+	csrfTok, _ := s.ensureCSRFToken(w, r)
+	s.render(w, "transmission.html", pageData{
+		Title:        "Transmission " + idStr,
+		Drone:        s.currentDrone(r),
+		Transmission: tx,
+		CSRFToken:    csrfTok,
 	})
 }
 

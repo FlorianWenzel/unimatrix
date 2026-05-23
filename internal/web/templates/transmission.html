@@ -1,0 +1,21 @@
+{{define "transmission.html"}}{{template "base" .}}{{end}}
+
+{{define "content"}}
+<h1>Transmission {{.Transmission.ID}}</h1>
+
+<div class="transmission" style="border-bottom: none;">
+  <div class="meta">
+    <a href="/drone/{{.Transmission.Designation}}" class="designation">{{.Transmission.Designation}}</a>
+    · <span style="color: var(--accent); font-weight: bold;">{{.Transmission.Likes}} acknowledgments</span>
+    · <time datetime="{{.Transmission.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"
+           data-created-at="{{.Transmission.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+        {{.Transmission.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
+      </time>
+  </div>
+  <div class="body" style="font-size: 16px; margin-top: 12px;">{{.Transmission.Body}}</div>
+</div>
+
+<p style="margin-top: 24px;">
+  <a href="/">&larr; Return to the collective</a>
+</p>
+{{end}}
