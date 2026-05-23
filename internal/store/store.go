@@ -247,8 +247,12 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 		limit = 50
 	}
 	rows, err := s.db.Query(
-		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
-		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at,
+		        COUNT(l.transmission_id) AS likes
+		   FROM transmissions t
+		   JOIN drones d ON d.id = t.drone_id
+		   LEFT JOIN likes l ON l.transmission_id = t.id
+		  GROUP BY t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		  ORDER BY d.is_queen DESC, t.created_at DESC, t.id DESC
 		  LIMIT ?`, limit,
 	)
@@ -260,7 +264,7 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 	var out []Transmission
 	for rows.Next() {
 		var t Transmission
-		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt, &t.Likes); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -274,9 +278,13 @@ func (s *Store) ListTransmissionsByDrone(designation string, limit int) ([]Trans
 		limit = 50
 	}
 	rows, err := s.db.Query(
-		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
-		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at,
+		        COUNT(l.transmission_id) AS likes
+		   FROM transmissions t
+		   JOIN drones d ON d.id = t.drone_id
+		   LEFT JOIN likes l ON l.transmission_id = t.id
 		  WHERE d.designation = ?
+		  GROUP BY t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		  ORDER BY t.created_at DESC, t.id DESC
 		  LIMIT ?`, designation, limit,
 	)
@@ -288,7 +296,7 @@ func (s *Store) ListTransmissionsByDrone(designation string, limit int) ([]Trans
 	var out []Transmission
 	for rows.Next() {
 		var t Transmission
-		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt, &t.Likes); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
