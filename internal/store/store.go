@@ -362,14 +362,14 @@ func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get the like count for this transmission
 	likes, err := s.GetTransmissionLikes(t.ID)
 	if err != nil {
 		return nil, err
 	}
 	t.Likes = likes
-	
+
 	return &t, nil
 }
 
