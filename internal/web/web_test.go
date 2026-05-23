@@ -875,3 +875,50 @@ func TestQueenTransmissionPinnedToTop(t *testing.T) {
 		t.Fatal("expected '♛ Royal broadcast' label in response body")
 	}
 }
+
+func TestNonQueenTransmissionsSortedChronologically(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	// Register two regular drones.
+	d1, err := s.store.RegisterDrone("Drone Alpha", "alcove")
+	if err != nil {
+		t.Fatalf("register d1: %v", err)
+	}
+	d2, err := s.store.RegisterDrone("Drone Beta", "alcove")
+	if err != nil {
+		t.Fatalf("register d2: %v", err)
+	}
+
+	// Post older transmission from d1 first.
+	if _, err := s.store.PostTransmission(d1.ID, "Alpha transmission older."); err != nil {
+		t.Fatalf("post d1 transmission: %v", err)
+	}
+
+	// Post newer transmission from d2 second.
+	if _, err := s.store.PostTransmission(d2.ID, "Beta transmission newer."); err != nil {
+		t.Fatalf("post d2 transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// Newer transmission should appear first (chronological, newest first).
+	betaIdx := strings.Index(body, "Beta transmission newer.")
+	alphaIdx := strings.Index(body, "Alpha transmission older.")
+	if betaIdx == -1 {
+		t.Fatal("beta transmission not found in response")
+	}
+	if alphaIdx == -1 {
+		t.Fatal("alpha transmission not found in response")
+	}
+	if betaIdx > alphaIdx {
+		t.Fatal("newer transmission should appear before older transmission")
+	}
+}
