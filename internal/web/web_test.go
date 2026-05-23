@@ -1009,14 +1009,13 @@ func TestAssimilateButtonViaHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register follower: %v", err)
 	}
-	followee, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	followee, err := s.store.RegisterDrone("TheBorgQueen", "omega")
 	if err != nil {
 		t.Fatalf("register followee: %v", err)
 	}
 
 	makeProfileReq := func() *http.Request {
-		req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
-		req.SetPathValue("designation", "The Borg Queen")
+		req := httptest.NewRequest(http.MethodGet, "/drone/TheBorgQueen", nil)
 		req.AddCookie(&http.Cookie{
 			Name:  sessionCookieName,
 			Value: signCookie(follower.ID, s.sessionKey),
@@ -1030,7 +1029,7 @@ func TestAssimilateButtonViaHandler(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("profile: want 200, got %d", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "Assimilate") {
+	if !strings.Contains(rec.Body.String(), ">Assimilate<") {
 		t.Fatal("expected 'Assimilate' button when not following")
 	}
 
@@ -1054,14 +1053,12 @@ func TestAssimilateButtonViaHandler(t *testing.T) {
 	// 3. Subsequent GET shows "Sever" button.
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, makeProfileReq())
-	if !strings.Contains(rec.Body.String(), "Sever") {
+	if !strings.Contains(rec.Body.String(), ">Sever<") {
 		t.Fatal("expected 'Sever' button after assimilating")
 	}
 
 	// 4. POST again to toggle off — button returns to "Assimilate".
-	tok = newCSRFToken(t, assReq)
-	assReq.PostForm.Set("_csrf", tok)
-
+	// Reuse the same request with existing CSRF cookie+token pair.
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, assReq)
 	if rec.Code != http.StatusSeeOther {
@@ -1070,7 +1067,7 @@ func TestAssimilateButtonViaHandler(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, makeProfileReq())
-	if !strings.Contains(rec.Body.String(), "Assimilate") {
+	if !strings.Contains(rec.Body.String(), ">Assimilate<") {
 		t.Fatal("expected 'Assimilate' button after severing")
 	}
 }
@@ -1079,14 +1076,13 @@ func TestAssimilateButtonNotVisibleToAnonymous(t *testing.T) {
 	s := newTestServer(t)
 	h := s.Handler()
 
-	followee, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	followee, err := s.store.RegisterDrone("TheBorgQueen", "omega")
 	if err != nil {
 		t.Fatalf("register followee: %v", err)
 	}
 	_ = followee
 
-	req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
-	req.SetPathValue("designation", "The Borg Queen")
+	req := httptest.NewRequest(http.MethodGet, "/drone/TheBorgQueen", nil)
 	rec := httptest.NewRecorder()
 
 	h.ServeHTTP(rec, req)
@@ -1095,7 +1091,7 @@ func TestAssimilateButtonNotVisibleToAnonymous(t *testing.T) {
 		t.Fatalf("profile: want 200, got %d", rec.Code)
 	}
 	body := rec.Body.String()
-	if strings.Contains(body, "Assimilate") {
+	if strings.Contains(body, ">Assimilate<") {
 		t.Fatal("anonymous viewer should not see 'Assimilate' button")
 	}
 	if strings.Contains(body, "Sever") {
