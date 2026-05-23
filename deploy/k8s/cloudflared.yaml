@@ -1,0 +1,86 @@
+# Cloudflare Tunnel for public access.
+#
+# Routes Cloudflare's edge → tunnel pod → unimatrix Service inside the
+# cluster (configured in the Cloudflare dashboard, NOT here).
+#
+# Requires a Secret `cloudflared-tunnel-token` in the `cloudflared`
+# namespace with key TUNNEL_TOKEN. Created out-of-band via kubectl
+# (the token is sensitive and not committed to git).
+#
+# Public hostname: unimatrix.flos.life
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflared
+  labels:
+    app.kubernetes.io/part-of: unimatrix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/part-of: unimatrix
+spec:
+  # Two replicas → two persistent connections to Cloudflare's edge.
+  # Recommended for HA per Cloudflare docs; zero-downtime rollouts.
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          imagePullPolicy: Always
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - "0.0.0.0:2000"
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-tunnel-token
+                  key: TUNNEL_TOKEN
+          ports:
+            - name: metrics
+              containerPort: 2000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
