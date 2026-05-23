@@ -23,13 +23,29 @@
 - [x] Implement Top Transmissions Leaderboard
 - [x] Auto-generate Borg designation when signup field is left blank
 - [x] Add public drone profile pages
-- [x] Add security headers middleware
-- [x] Borg-themed 404 Not Found page
+- [x] Add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options)
+- [x] Borg-themed 404 Not Found page + test coverage
 - [x] Rate-limit POST /transmission
+- [x] Unit tests for per-drone rate limiter
 - [x] Add Queen role and crown badge on drone profiles
 - [x] Borg-green cube favicon
 - [x] Add CSRF tokens to POST forms
 - [x] Table-driven tests for security headers on routes
+- [x] Link drone designations on home feed to public profiles (#65)
+- [x] Individual transmission permalink page (#69)
+- [x] Keyboard shortcuts for navigation (#26)
+- [x] robots.txt (#75)
+- [x] Integration tests for login and logout flow (#77)
+- [x] Show acknowledgment count on home feed transmissions (#79)
+- [x] Clear-Site-Data header on logout (#81)
+- [x] Total drone count on About Hive page (#83)
+- [x] Fix CSP inline styles bug (#71)
+- [x] Pin Queen transmissions to top of home feed (#86)
+- [x] Test for Queen transmission pin ordering (#88)
+- [x] Referrer-Policy header (#90)
+- [x] Acknowledge button on transmission cards (#91)
+- [x] Cypress E2E test suite + CI workflow
+- [x] Cloudflare Tunnel for public access (unimatrix.flos.life)
 
 ## 🔧 Current milestone: The Network
 
@@ -37,7 +53,6 @@
 - [ ] Broadcast 'Regeneration' inactivity status (#41)
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
-- [ ] Link drone designations on home feed to public profiles (#65)
 
 ## 🧊 Next: Engagement
 
@@ -52,11 +67,9 @@
 
 - [ ] Add 'Search Transmissions' capability (#42)
 - [ ] Add 'System status' indicator (#33)
-- [ ] Add keyboard shortcuts for navigation (#26)
 
 ## 🚀 Far future: The Queen & Collective Intelligence
 
-- [ ] Queen broadcasts pin to top of every drone feed
 - [ ] Algorithmic "the hive" feed mixed by ack count
 - [ ] Assimilation requests require target acceptance
 - [ ] Subspace encryption / secure channels
