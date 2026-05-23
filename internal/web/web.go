@@ -63,6 +63,7 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
+	mux.HandleFunc("GET /favicon.ico", s.favicon)
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("GET /about", s.about)
 	mux.HandleFunc("GET /register", s.registerForm)
@@ -80,6 +81,20 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte("ok"))
+}
+
+// faviconInlineSVG is a 16×16 Borg-green cube rendered as inline SVG.
+const faviconInlineSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <rect x="0" y="0" width="16" height="16" fill="#0a0e0a"/>
+  <polygon points="8,1 15,5 15,11 8,15 1,11 1,5" fill="#1a4a2a" stroke="#5fffaf" stroke-width="0.5"/>
+  <polygon points="8,1 15,5 8,9 1,5" fill="#5fffaf"/>
+  <polygon points="8,9 15,5 15,11 8,15" fill="#1a4a2a"/>
+</svg>`
+
+func (s *Server) favicon(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	_, _ = w.Write([]byte(faviconInlineSVG))
 }
 
 type pageData struct {
