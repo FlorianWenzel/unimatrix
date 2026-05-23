@@ -327,6 +327,32 @@ func TestRateLimiterIndependentDrones(t *testing.T) {
 	}
 }
 
+func TestPostTransmissionWithoutCSRF(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("CSRFTest", "access")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	form := url.Values{
+		"body": {"resistance is futile"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{
+		Name:  sessionCookieName,
+		Value: signCookie(d.ID, s.sessionKey),
+	})
+
+	rec := httptest.NewRecorder()
+	s.postTransmission(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("want 403, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+}
+
 func TestDroneProfileQueenBadge(t *testing.T) {
 	s := newTestServer(t)
 

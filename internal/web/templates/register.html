@@ -6,6 +6,7 @@
   Join the collective. Your identity will be added to our own.
 </p>
 <form method="post" action="/register">
+  <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
   <label for="designation">drone designation</label>
   <input id="designation" name="designation" type="text" autocomplete="username" autofocus>
   <label for="access_code">access code</label>

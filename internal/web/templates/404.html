@@ -137,6 +137,7 @@
       {{if .Drone}}
         <span style="color: var(--fg-dim)">{{.Drone.Designation}} (assimilated: {{.Drone.CreatedAt.Format "2006-01-02"}})</span>
         <form method="post" action="/logout" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
           <button class="inline" type="submit">logout</button>
         </form>
       {{else}}
