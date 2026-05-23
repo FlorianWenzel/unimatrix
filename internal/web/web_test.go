@@ -783,4 +783,13 @@ func TestLogoutClearsSession(t *testing.T) {
 	if !cleared {
 		t.Fatal("session cookie not cleared after logout")
 	}
+
+	// Assert Clear-Site-Data header is present.
+	csd := logoutRec.Header().Get("Clear-Site-Data")
+	if csd == "" {
+		t.Fatal("Clear-Site-Data header not set on logout")
+	}
+	if !strings.Contains(csd, "cache") || !strings.Contains(csd, "cookies") || !strings.Contains(csd, "storage") {
+		t.Fatalf("Clear-Site-Data missing expected directives, got %q", csd)
+	}
 }
