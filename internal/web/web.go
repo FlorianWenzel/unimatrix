@@ -5,13 +5,13 @@ package web
 
 import (
 	"embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -407,27 +407,25 @@ func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if transmission exists
-	tx, err := s.store.TransmissionByID(transmissionID)
-	if err != nil || tx == nil {
+	if tx, err := s.store.TransmissionByID(transmissionID); err != nil || tx == nil {
 		http.Error(w, "transmission not found", http.StatusNotFound)
 		return
 	}
 
-	// Record the like
 	if err := s.store.LikeTransmission(d.ID, transmissionID); err != nil {
 		s.logger.Error("like transmission", "drone", d.Designation, "id", transmissionID, "err", err)
 		http.Error(w, "failed to like transmission", http.StatusInternalServerError)
 		return
 	}
 
-	// Return JSON response
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"likes":   tx.Likes + 1,
-	}); err != nil {
-		s.logger.Error("encode json", "err", err)
+	// Redirect back to the page the drone came from. Only same-origin
+	// paths are honored so the form can't be turned into an open
+	// redirect by a crafted Referer header.
+	dest := "/"
+	if u, err := url.Parse(r.Header.Get("Referer")); err == nil && u.Host == "" && strings.HasPrefix(u.Path, "/") {
+		dest = u.Path
 	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {

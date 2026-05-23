@@ -11,6 +11,13 @@
            data-created-at="{{.Transmission.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
         {{.Transmission.CreatedAt.UTC.Format "2006-01-02 15:04 UTC"}}
       </time>
+    {{if .Drone}}
+    <form method="post" action="/like" style="display: inline; margin-left: 8px;">
+      <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+      <input type="hidden" name="id" value="{{.Transmission.ID}}">
+      <button class="inline" type="submit" style="font-size: 12px;">&#9825; acknowledge</button>
+    </form>
+    {{end}}
   </div>
   <div class="body" style="font-size: 16px; margin-top: 12px;">{{.Transmission.Body}}</div>
 </div>
