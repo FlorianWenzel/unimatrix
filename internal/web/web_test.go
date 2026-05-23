@@ -456,3 +456,55 @@ func TestFaviconViaHandler(t *testing.T) {
 		t.Fatalf("want Content-Type image/svg+xml, got %q", ct)
 	}
 }
+
+func TestHomeFeedLinksToDroneProfile(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("Six of Ten", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	if _, err := s.store.PostTransmission(d.ID, "We are the Borg."); err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.home(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	expectedLink := `<a href="/drone/` + d.Designation + `" class="designation">` + d.Designation + `</a>`
+	if !strings.Contains(body, expectedLink) {
+		t.Fatalf("expected profile link %q in response body", expectedLink)
+	}
+}
+
+func TestTopTransmissionsLinksToDroneProfile(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("Eight of Twelve", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	if _, err := s.store.PostTransmission(d.ID, "Resistance."); err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	s.home(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	expectedLink := `<a href="/drone/` + d.Designation + `" class="designation">` + d.Designation + `</a>`
+	if !strings.Contains(body, expectedLink) {
+		t.Fatalf("expected profile link %q in response body", expectedLink)
+	}
+}
