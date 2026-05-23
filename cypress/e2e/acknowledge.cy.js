@@ -9,13 +9,14 @@
 // control, while still catching the case where no control exists at all.
 
 describe('acknowledge a transmission', () => {
-  // A unique designation per run keeps the SQLite database from
-  // colliding with prior test data if the CI job reuses state.
-  const designation = `tester${Date.now()}`;
-  const accessCode = 'resistance-is-futile';
-  const body = 'first contact transmission';
-
   it('lets a logged-in drone acknowledge a transmission and reflects it in the count', () => {
+    // Generate a unique designation INSIDE the test body so Cypress
+    // retries get a fresh designation each attempt. Otherwise a retry
+    // hits an "already exists" error on /register and masks the real
+    // failure further down the spec.
+    const designation = `tester${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+    const accessCode = 'resistance-is-futile';
+    const body = 'first contact transmission';
     // Register a drone.
     cy.visit('/register');
     cy.get('input[name="designation"]').type(designation);
