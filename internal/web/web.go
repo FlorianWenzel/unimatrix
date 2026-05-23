@@ -70,6 +70,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /transmission", s.postTransmission)
 	mux.HandleFunc("POST /like", s.likeTransmission)
 	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
+	mux.HandleFunc("/", s.notFound)
 	return SecurityHeaders(mux)
 }
 
@@ -348,4 +349,15 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 		ProfileDrone:  d,
 		Transmissions: txs,
 	})
+}
+
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	if err := s.tmpl.ExecuteTemplate(w, "404.html", pageData{
+		Title: "Sector Uncharted",
+		Drone: s.currentDrone(r),
+	}); err != nil {
+		s.logger.Error("render 404", "err", err)
+	}
 }
