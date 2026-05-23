@@ -37,6 +37,7 @@ type Drone struct {
 	ID          int64
 	Designation string
 	CreatedAt   time.Time
+	IsQueen     bool
 }
 
 type Transmission struct {
@@ -163,10 +164,11 @@ func (s *Store) Authenticate(designation, accessCode string) (*Drone, error) {
 		hash string
 		ts   time.Time
 	)
+	var isQueen bool
 	err := s.db.QueryRow(
-		`SELECT id, password_hash, created_at FROM drones WHERE designation = ?`,
+		`SELECT id, password_hash, created_at, is_queen FROM drones WHERE designation = ?`,
 		designation,
-	).Scan(&id, &hash, &ts)
+	).Scan(&id, &hash, &ts, &isQueen)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrAuthFailed
 	}
@@ -176,15 +178,15 @@ func (s *Store) Authenticate(designation, accessCode string) (*Drone, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(accessCode)); err != nil {
 		return nil, ErrAuthFailed
 	}
-	return &Drone{ID: id, Designation: designation, CreatedAt: ts}, nil
+	return &Drone{ID: id, Designation: designation, CreatedAt: ts, IsQueen: isQueen}, nil
 }
 
 // DroneByID looks up a drone by primary key. Returns nil, nil if not found.
 func (s *Store) DroneByID(id int64) (*Drone, error) {
 	var d Drone
 	err := s.db.QueryRow(
-		`SELECT id, designation, created_at FROM drones WHERE id = ?`, id,
-	).Scan(&d.ID, &d.Designation, &d.CreatedAt)
+		`SELECT id, designation, created_at, is_queen FROM drones WHERE id = ?`, id,
+	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -198,8 +200,8 @@ func (s *Store) DroneByID(id int64) (*Drone, error) {
 func (s *Store) DroneByDesignation(designation string) (*Drone, error) {
 	var d Drone
 	err := s.db.QueryRow(
-		`SELECT id, designation, created_at FROM drones WHERE designation = ?`, designation,
-	).Scan(&d.ID, &d.Designation, &d.CreatedAt)
+		`SELECT id, designation, created_at, is_queen FROM drones WHERE designation = ?`, designation,
+	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -402,6 +404,16 @@ func (s *Store) UnlikeTransmission(droneID, transmissionID int64) error {
 	_, err := s.db.Exec(
 		`DELETE FROM likes WHERE drone_id = ? AND transmission_id = ?`,
 		droneID, transmissionID,
+	)
+	return err
+}
+
+// SetQueenFlag sets the is_queen flag for a drone. This is intended for
+// DB-level administration; no UI toggle exists yet.
+func (s *Store) SetQueenFlag(droneID int64, isQueen bool) error {
+	_, err := s.db.Exec(
+		`UPDATE drones SET is_queen = ? WHERE id = ?`,
+		isQueen, droneID,
 	)
 	return err
 }

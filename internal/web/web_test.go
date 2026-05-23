@@ -326,3 +326,46 @@ func TestRateLimiterIndependentDrones(t *testing.T) {
 		t.Fatalf("d2 first post: want 303, got %d", rec.Code)
 	}
 }
+
+func TestDroneProfileQueenBadge(t *testing.T) {
+	s := newTestServer(t)
+
+	queen, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register queen: %v", err)
+	}
+	if err := s.store.SetQueenFlag(queen.ID, true); err != nil {
+		t.Fatalf("set queen flag: %v", err)
+	}
+
+	drone, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	// Queen profile should show badge.
+	req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
+	req.SetPathValue("designation", "The Borg Queen")
+	rec := httptest.NewRecorder()
+	s.droneProfile(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("queen profile: want 200, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "♛ Queen") {
+		t.Fatal("queen profile: expected '♛ Queen' badge in response body")
+	}
+
+	// Regular drone profile should NOT show badge.
+	req = httptest.NewRequest(http.MethodGet, "/drone/Seven+of+Nine", nil)
+	req.SetPathValue("designation", "Seven of Nine")
+	rec = httptest.NewRecorder()
+	s.droneProfile(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("drone profile: want 200, got %d", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "♛ Queen") {
+		t.Fatal("regular drone profile: expected NO '♛ Queen' badge in response body")
+	}
+}
