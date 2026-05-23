@@ -517,6 +517,7 @@ func TestTopTransmissionsLinksToDroneProfile(t *testing.T) {
 
 func TestTransmissionPage(t *testing.T) {
 	s := newTestServer(t)
+	h := s.Handler()
 
 	d, err := s.store.RegisterDrone("Seven of Nine", "alcove")
 	if err != nil {
@@ -536,7 +537,7 @@ func TestTransmissionPage(t *testing.T) {
 	req.SetPathValue("id", fmt.Sprint(tx.ID))
 	rec := httptest.NewRecorder()
 
-	s.transmissionPage(rec, req)
+	h.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
@@ -558,12 +559,13 @@ func TestTransmissionPage(t *testing.T) {
 
 func TestTransmissionPageNotFound(t *testing.T) {
 	s := newTestServer(t)
+	h := s.Handler()
 
 	req := httptest.NewRequest(http.MethodGet, "/transmission/99999", nil)
 	req.SetPathValue("id", "99999")
 	rec := httptest.NewRecorder()
 
-	s.transmissionPage(rec, req)
+	h.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("want 404, got %d (body: %s)", rec.Code, rec.Body.String())
