@@ -24,7 +24,7 @@ var templatesFS embed.FS
 
 type Server struct {
 	store        *store.Store
-	tmpl         *template.Template
+	tmpl         map[string]*template.Template
 	sessionKey   []byte
 	cookieSecure bool
 	logger       *slog.Logger
@@ -45,9 +45,23 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
-	if err != nil {
-		return nil, err
+	tmpl := make(map[string]*template.Template)
+	// Pages that include base.html — parse each separately to avoid
+	// {{define "content"}} redefinition (Go 1.24 overwrites silently).
+	for _, page := range []string{"home", "about", "login", "register"} {
+		t, err := template.ParseFS(templatesFS, "templates/base.html", "templates/"+page+".html")
+		if err != nil {
+			return nil, err
+		}
+		tmpl[page+".html"] = t
+	}
+	// Standalone pages — no base.html dependency.
+	for _, page := range []string{"drone", "404"} {
+		t, err := template.ParseFS(templatesFS, "templates/"+page+".html")
+		if err != nil {
+			return nil, err
+		}
+		tmpl[page+".html"] = t
 	}
 	return &Server{
 		store:        s,
@@ -111,7 +125,13 @@ type pageData struct {
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	t, ok := s.tmpl[name]
+	if !ok {
+		s.logger.Error("render template", "name", name, "err", "unknown template")
+		http.Error(w, "render failed", http.StatusInternalServerError)
+		return
+	}
+	if err := t.ExecuteTemplate(w, name, data); err != nil {
 		s.logger.Error("render template", "name", name, "err", err)
 		http.Error(w, "render failed", http.StatusInternalServerError)
 	}
@@ -431,7 +451,12 @@ func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
 	csrfTok, _ := s.ensureCSRFToken(w, r)
-	if err := s.tmpl.ExecuteTemplate(w, "404.html", pageData{
+	t, ok := s.tmpl["404.html"]
+	if !ok {
+		s.logger.Error("render 404", "err", "unknown template")
+		return
+	}
+	if err := t.ExecuteTemplate(w, "404.html", pageData{
 		Title:     "Sector Uncharted",
 		Drone:     s.currentDrone(r),
 		CSRFToken: csrfTok,
