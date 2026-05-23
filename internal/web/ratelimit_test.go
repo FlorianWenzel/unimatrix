@@ -50,7 +50,7 @@ func TestRateLimiterResetsAfterWindow(t *testing.T) {
 	}
 }
 
-func TestRateLimiterIndependentDrones(t *testing.T) {
+func TestRateLimiterIndependentDroneIDs(t *testing.T) {
 	rl := NewRateLimiter()
 
 	// Drone 1 exhausts its limit.
