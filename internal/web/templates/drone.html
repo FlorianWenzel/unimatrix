@@ -154,6 +154,20 @@
       Assimilated: {{.ProfileDrone.CreatedAt.Format "2006-01-02"}}
     </p>
 
+    {{if .Drone}}
+      {{if ne .Drone.ID .ProfileDrone.ID}}
+      <form method="post" action="/assimilate" style="margin-bottom: 20px;">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <input type="hidden" name="id" value="{{.ProfileDrone.ID}}">
+        {{if .IsFollowing}}
+        <button type="submit" style="background: var(--danger); color: var(--bg); border-color: var(--danger);">Sever</button>
+        {{else}}
+        <button type="submit">Assimilate</button>
+        {{end}}
+      </form>
+      {{end}}
+    {{end}}
+
     {{if .Transmissions}}
       {{range .Transmissions}}
         <div class="transmission">
