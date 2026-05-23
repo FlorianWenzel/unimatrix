@@ -56,10 +56,10 @@
         <form method="post" action="/like" style="display: inline; margin-left: 8px;">
           <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
           <input type="hidden" name="id" value="{{.ID}}">
-          <button class="inline" type="submit" style="font-size: 12px;">&#9825; acknowledge</button>
+          <button class="inline" type="submit" style="font-size: 12px;" aria-label="Acknowledge transmission">&#9825; acknowledge</button>
         </form>
         {{end}}
-        <button class="inline copy-link"
+        <button class="inline copy-link" aria-label="Copy link to transmission"
                 data-id="{{.ID}}"
                 style="margin-left: 8px; font-size: 12px;">
           copy link
@@ -68,7 +68,7 @@
         <form method="post" action="/like" style="display: inline;">
           <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
           <input type="hidden" name="id" value="{{.ID}}">
-          <button class="inline" type="submit" style="margin-left: 8px; font-size: 12px;">♡ acknowledge</button>
+          <button class="inline" type="submit" style="margin-left: 8px; font-size: 12px;" aria-label="Acknowledge transmission">♡ acknowledge</button>
         </form>
         {{end}}
       </div>

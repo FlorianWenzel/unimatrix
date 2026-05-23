@@ -15,7 +15,7 @@
     <form method="post" action="/like" style="display: inline; margin-left: 8px;">
       <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
       <input type="hidden" name="id" value="{{.Transmission.ID}}">
-      <button class="inline" type="submit" style="font-size: 12px;">♡ acknowledge</button>
+      <button class="inline" type="submit" style="font-size: 12px;" aria-label="Acknowledge transmission">♡ acknowledge</button>
     </form>
     {{end}}
   </div>
