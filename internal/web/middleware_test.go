@@ -21,6 +21,8 @@ func TestSecurityHeaders(t *testing.T) {
 
 	if v := rec.Header().Get("Content-Security-Policy"); v == "" {
 		t.Fatal("Content-Security-Policy header missing")
+	} else if !strings.Contains(v, "style-src") {
+		t.Fatalf("Content-Security-Policy missing style-src directive: %q", v)
 	}
 	if v := rec.Header().Get("X-Frame-Options"); v != "DENY" {
 		t.Fatalf("X-Frame-Options: want DENY, got %q", v)
@@ -58,6 +60,8 @@ func TestSecurityHeadersOnRoutes(t *testing.T) {
 
 			if v := rec.Header().Get("Content-Security-Policy"); v == "" {
 				t.Errorf("Content-Security-Policy header missing")
+			} else if !strings.Contains(v, "style-src") {
+				t.Errorf("Content-Security-Policy missing style-src directive: %q", v)
 			}
 			if v := rec.Header().Get("X-Frame-Options"); v != "DENY" {
 				t.Errorf("X-Frame-Options: want DENY, got %q", v)
