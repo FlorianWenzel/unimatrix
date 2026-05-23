@@ -200,3 +200,44 @@ func TestDroneProfileWithTransmissions(t *testing.T) {
 		t.Fatal("expected transmission in response body")
 	}
 }
+
+func TestNotFoundPage(t *testing.T) {
+	s := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/uncharted/sector", nil)
+	rec := httptest.NewRecorder()
+
+	s.notFound(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Sector Uncharted") {
+		t.Fatal("expected 'Sector Uncharted' in response body")
+	}
+	if !strings.Contains(body, "Return to the collective") {
+		t.Fatal("expected 'Return to the collective' link in response body")
+	}
+}
+
+func TestNotFoundPageViaHandler(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/nonexistent/path", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Sector Uncharted") {
+		t.Fatal("expected 'Sector Uncharted' in response body")
+	}
+	if !strings.Contains(body, "/\">") || !strings.Contains(body, "Return to the collective") {
+		t.Fatal("expected link back to collective in response body")
+	}
+}
