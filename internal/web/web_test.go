@@ -922,3 +922,78 @@ func TestNonQueenTransmissionsSortedChronologically(t *testing.T) {
 		t.Fatal("newer transmission should appear before older transmission")
 	}
 }
+
+func TestAssimilateToggle(t *testing.T) {
+	s := newTestServer(t)
+
+	// Register two drones.
+	follower, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register follower: %v", err)
+	}
+	followee, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register followee: %v", err)
+	}
+
+	// Helper: POST /assimilate to toggle follow state.
+	toggleFollow := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/assimilate", strings.NewReader("_csrf=x&id="+fmt.Sprint(followee.ID)))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(follower.ID, s.sessionKey),
+		})
+		tok := newCSRFToken(t, req)
+		req.PostForm = url.Values{
+			"_csrf": {tok},
+			"id":    {fmt.Sprint(followee.ID)},
+		}
+		rec := httptest.NewRecorder()
+		s.assimilateToggle(rec, req)
+		return rec
+	}
+
+	// Helper: GET profile and check button text.
+	getProfile := func() string {
+		req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
+		req.SetPathValue("designation", "The Borg Queen")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(follower.ID, s.sessionKey),
+		})
+		rec := httptest.NewRecorder()
+		s.droneProfile(rec, req)
+		return rec.Body.String()
+	}
+
+	// Initially not following — should see "Assimilate" button.
+	body := getProfile()
+	if !strings.Contains(body, "Assimilate") {
+		t.Fatal("expected 'Assimilate' button when not following")
+	}
+
+	// Toggle to follow.
+	rec := toggleFollow()
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("assimilate: want 303, got %d", rec.Code)
+	}
+
+	// Now following — should see "Sever" button.
+	body = getProfile()
+	if !strings.Contains(body, "Sever") {
+		t.Fatal("expected 'Sever' button when following")
+	}
+
+	// Toggle to unfollow.
+	rec = toggleFollow()
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("sever: want 303, got %d", rec.Code)
+	}
+
+	// Back to not following — should see "Assimilate" again.
+	body = getProfile()
+	if !strings.Contains(body, "Assimilate") {
+		t.Fatal("expected 'Assimilate' button after un-following")
+	}
+}

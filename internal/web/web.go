@@ -89,6 +89,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /transmission", s.postTransmission)
 	mux.HandleFunc("GET /transmission/{id}", s.transmissionPage)
 	mux.HandleFunc("POST /like", s.likeTransmission)
+	mux.HandleFunc("POST /assimilate", s.assimilateToggle)
 	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
 	mux.HandleFunc("/", s.notFound)
 	return SecurityHeaders(mux)
@@ -130,6 +131,7 @@ type pageData struct {
 	Transmission     *store.Transmission // single transmission view
 	CSRFToken        string
 	DroneCount       int
+	IsFollowing      bool
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -428,6 +430,54 @@ func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
+func (s *Server) assimilateToggle(w http.ResponseWriter, r *http.Request) {
+	cur := s.currentDrone(r)
+	if cur == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	if !s.validateCSRF(r) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	followeeIDStr := r.PostFormValue("id")
+	followeeID, err := strconv.ParseInt(followeeIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid drone id", http.StatusBadRequest)
+		return
+	}
+	if cur.ID == followeeID {
+		http.Error(w, "cannot assimilate yourself", http.StatusBadRequest)
+		return
+	}
+	following, err := s.store.IsFollowing(cur.ID, followeeID)
+	if err != nil {
+		s.logger.Error("check follow", "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	if following {
+		err = s.store.UnfollowDrone(cur.ID, followeeID)
+	} else {
+		err = s.store.FollowDrone(cur.ID, followeeID)
+	}
+	if err != nil {
+		s.logger.Error("toggle follow", "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	// Redirect back to the profile page.
+	dest := "/"
+	if u, err := url.Parse(r.Header.Get("Referer")); err == nil && u.Host == "" && strings.HasPrefix(u.Path, "/") {
+		dest = u.Path
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
+}
+
 func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 	designation := r.PathValue("designation")
 
@@ -451,12 +501,18 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 
 	csrfTok, _ := s.ensureCSRFToken(w, r)
 
+	var isFollowing bool
+	if cur := s.currentDrone(r); cur != nil {
+		isFollowing, _ = s.store.IsFollowing(cur.ID, d.ID)
+	}
+
 	s.render(w, "drone.html", pageData{
 		Title:         d.Designation,
 		Drone:         s.currentDrone(r),
 		ProfileDrone:  d,
 		Transmissions: txs,
 		CSRFToken:     csrfTok,
+		IsFollowing:   isFollowing,
 	})
 }
 

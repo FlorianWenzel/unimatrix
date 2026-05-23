@@ -417,6 +417,34 @@ func (s *Store) UnlikeTransmission(droneID, transmissionID int64) error {
 	return err
 }
 
+// FollowDrone records a follow relationship between two drones.
+func (s *Store) FollowDrone(followerID, followeeID int64) error {
+	_, err := s.db.Exec(
+		`INSERT OR IGNORE INTO follows(follower_id, followee_id) VALUES (?, ?)`,
+		followerID, followeeID,
+	)
+	return err
+}
+
+// UnfollowDrone removes a follow relationship between two drones.
+func (s *Store) UnfollowDrone(followerID, followeeID int64) error {
+	_, err := s.db.Exec(
+		`DELETE FROM follows WHERE follower_id = ? AND followee_id = ?`,
+		followerID, followeeID,
+	)
+	return err
+}
+
+// IsFollowing reports whether followerID follows followeeID.
+func (s *Store) IsFollowing(followerID, followeeID int64) (bool, error) {
+	var count int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM follows WHERE follower_id = ? AND followee_id = ?`,
+		followerID, followeeID,
+	).Scan(&count)
+	return count > 0, err
+}
+
 // SetQueenFlag sets the is_queen flag for a drone. This is intended for
 // DB-level administration; no UI toggle exists yet.
 func (s *Store) SetQueenFlag(droneID int64, isQueen bool) error {
