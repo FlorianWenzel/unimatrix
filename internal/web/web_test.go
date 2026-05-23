@@ -1098,3 +1098,82 @@ func TestAssimilateButtonNotVisibleToAnonymous(t *testing.T) {
 		t.Fatal("anonymous viewer should not see 'Sever' button")
 	}
 }
+
+func TestLikeAcknowledgeEndpoint(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	// Register a drone and post a transmission.
+	drone, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	tx, err := s.store.PostTransmission(drone.ID, "We are the Borg.")
+	if err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	// Register a second drone to acknowledge.
+	liker, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register liker: %v", err)
+	}
+
+	makeLikeReq := func() *http.Request {
+		form := url.Values{"id": {fmt.Sprint(tx.ID)}}
+		req := httptest.NewRequest(http.MethodPost, "/like", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(liker.ID, s.sessionKey),
+		})
+		return req
+	}
+
+	// 1. Authenticated drone acknowledges → 303 redirect.
+	likeReq := makeLikeReq()
+	tok := newCSRFToken(t, likeReq)
+	likeReq.PostForm = url.Values{"_csrf": {tok}, "id": {fmt.Sprint(tx.ID)}}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, likeReq)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("like: want 303, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	// 2. Idempotent: same drone liking again still returns 303.
+	likeReq = makeLikeReq()
+	tok = newCSRFToken(t, likeReq)
+	likeReq.PostForm = url.Values{"_csrf": {tok}, "id": {fmt.Sprint(tx.ID)}}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, likeReq)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("idempotent like: want 303, got %d", rec.Code)
+	}
+
+	// 3. No authentication → 401.
+	unauthReq := httptest.NewRequest(http.MethodPost, "/like", strings.NewReader("_csrf=x&id="+fmt.Sprint(tx.ID)))
+	unauthReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, unauthReq)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauth like: want 401, got %d", rec.Code)
+	}
+
+	// 4. Missing CSRF → 403.
+	noCSRFReq := makeLikeReq()
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, noCSRFReq)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("no CSRF like: want 403, got %d", rec.Code)
+	}
+
+	// 5. Unknown transmission ID → 404.
+	badReq := makeLikeReq()
+	tok = newCSRFToken(t, badReq)
+	badReq.PostForm = url.Values{"_csrf": {tok}, "id": {"99999"}}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, badReq)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("bad id like: want 404, got %d", rec.Code)
+	}
+}
