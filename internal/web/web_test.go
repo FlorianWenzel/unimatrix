@@ -999,3 +999,106 @@ func TestAssimilateToggle(t *testing.T) {
 		t.Fatal("expected 'Assimilate' button after un-following")
 	}
 }
+
+func TestAssimilateButtonViaHandler(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	// Register two drones.
+	follower, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register follower: %v", err)
+	}
+	followee, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register followee: %v", err)
+	}
+
+	makeProfileReq := func() *http.Request {
+		req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
+		req.SetPathValue("designation", "The Borg Queen")
+		req.AddCookie(&http.Cookie{
+			Name:  sessionCookieName,
+			Value: signCookie(follower.ID, s.sessionKey),
+		})
+		return req
+	}
+
+	// 1. Drone A views B's profile — "Assimilate" button present.
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, makeProfileReq())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("profile: want 200, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Assimilate") {
+		t.Fatal("expected 'Assimilate' button when not following")
+	}
+
+	// 2. Drone A POSTs /assimilate for B — 302 redirect.
+	form := url.Values{"id": {fmt.Sprint(followee.ID)}}
+	assReq := httptest.NewRequest(http.MethodPost, "/assimilate", strings.NewReader(form.Encode()))
+	assReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	assReq.AddCookie(&http.Cookie{
+		Name:  sessionCookieName,
+		Value: signCookie(follower.ID, s.sessionKey),
+	})
+	tok := newCSRFToken(t, assReq)
+	assReq.PostForm = url.Values{"_csrf": {tok}, "id": {fmt.Sprint(followee.ID)}}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, assReq)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("assimilate POST: want 303, got %d", rec.Code)
+	}
+
+	// 3. Subsequent GET shows "Sever" button.
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, makeProfileReq())
+	if !strings.Contains(rec.Body.String(), "Sever") {
+		t.Fatal("expected 'Sever' button after assimilating")
+	}
+
+	// 4. POST again to toggle off — button returns to "Assimilate".
+	tok = newCSRFToken(t, assReq)
+	assReq.PostForm.Set("_csrf", tok)
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, assReq)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("sever POST: want 303, got %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, makeProfileReq())
+	if !strings.Contains(rec.Body.String(), "Assimilate") {
+		t.Fatal("expected 'Assimilate' button after severing")
+	}
+}
+
+func TestAssimilateButtonNotVisibleToAnonymous(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	followee, err := s.store.RegisterDrone("The Borg Queen", "omega")
+	if err != nil {
+		t.Fatalf("register followee: %v", err)
+	}
+	_ = followee
+
+	req := httptest.NewRequest(http.MethodGet, "/drone/The+Borg+Queen", nil)
+	req.SetPathValue("designation", "The Borg Queen")
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("profile: want 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, "Assimilate") {
+		t.Fatal("anonymous viewer should not see 'Assimilate' button")
+	}
+	if strings.Contains(body, "Sever") {
+		t.Fatal("anonymous viewer should not see 'Sever' button")
+	}
+}
