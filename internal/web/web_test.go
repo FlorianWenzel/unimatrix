@@ -2,6 +2,7 @@ package web
 
 import (
 	"crypto/rand"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -511,5 +512,64 @@ func TestTopTransmissionsLinksToDroneProfile(t *testing.T) {
 	expectedLink := `<a href="/drone/` + escapedDesignation + `" class="designation">` + d.Designation + `</a>`
 	if !strings.Contains(body, expectedLink) {
 		t.Fatalf("expected profile link %q in response body", expectedLink)
+	}
+}
+
+func TestTransmissionPage(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("Seven of Nine", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	tx, err := s.store.PostTransmission(d.ID, "We are the Borg.")
+	if err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	// Like the transmission to test acknowledgment count
+	if err := s.store.LikeTransmission(d.ID, tx.ID); err != nil {
+		t.Fatalf("like transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transmission/"+url.PathEscape(fmt.Sprint(tx.ID)), nil)
+	req.SetPathValue("id", fmt.Sprint(tx.ID))
+	rec := httptest.NewRecorder()
+
+	s.transmissionPage(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Seven of Nine") {
+		t.Fatal("expected drone designation in response body")
+	}
+	if !strings.Contains(body, "We are the Borg.") {
+		t.Fatal("expected transmission body in response body")
+	}
+	if !strings.Contains(body, "1 acknowledgments") {
+		t.Fatal("expected acknowledgment count in response body")
+	}
+	if !strings.Contains(body, "Return to the collective") {
+		t.Fatal("expected link back to collective in response body")
+	}
+}
+
+func TestTransmissionPageNotFound(t *testing.T) {
+	s := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/transmission/99999", nil)
+	req.SetPathValue("id", "99999")
+	rec := httptest.NewRecorder()
+
+	s.transmissionPage(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Sector Uncharted") {
+		t.Fatal("expected 'Sector Uncharted' for unknown transmission")
 	}
 }
