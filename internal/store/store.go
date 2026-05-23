@@ -194,6 +194,21 @@ func (s *Store) DroneByID(id int64) (*Drone, error) {
 	return &d, nil
 }
 
+// DroneByDesignation looks up a drone by designation. Returns nil, nil if not found.
+func (s *Store) DroneByDesignation(designation string) (*Drone, error) {
+	var d Drone
+	err := s.db.QueryRow(
+		`SELECT id, designation, created_at FROM drones WHERE designation = ?`, designation,
+	).Scan(&d.ID, &d.Designation, &d.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
 // PostTransmission creates a new transmission for the given drone.
 func (s *Store) PostTransmission(droneID int64, body string) (*Transmission, error) {
 	body = strings.TrimSpace(body)

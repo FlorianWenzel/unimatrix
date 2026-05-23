@@ -134,3 +134,69 @@ func TestRegisterSubmitDuplicateDesignationRetries(t *testing.T) {
 		t.Fatal("expected 'already in the collective' flash for explicit duplicate")
 	}
 }
+
+func TestDroneProfileKnownDesignation(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/drone/Seven+of+Nine", nil)
+	req.SetPathValue("designation", "Seven of Nine")
+	rec := httptest.NewRecorder()
+
+	s.droneProfile(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, d.Designation) {
+		t.Fatalf("expected designation %q in response body", d.Designation)
+	}
+	if !strings.Contains(body, "Assimilated") {
+		t.Fatal("expected assimilation date in response body")
+	}
+}
+
+func TestDroneProfileUnknownDesignation(t *testing.T) {
+	s := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/drone/Nonexistent", nil)
+	req.SetPathValue("designation", "Nonexistent")
+	rec := httptest.NewRecorder()
+
+	s.droneProfile(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestDroneProfileWithTransmissions(t *testing.T) {
+	s := newTestServer(t)
+
+	d, err := s.store.RegisterDrone("Two of Twelve", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	if _, err := s.store.PostTransmission(d.ID, "We are the Borg."); err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/drone/Two+of+Twelve", nil)
+	req.SetPathValue("designation", "Two of Twelve")
+	rec := httptest.NewRecorder()
+
+	s.droneProfile(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "We are the Borg.") {
+		t.Fatal("expected transmission in response body")
+	}
+}
