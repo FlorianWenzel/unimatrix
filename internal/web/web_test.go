@@ -108,7 +108,7 @@ func TestRegisterSubmitDuplicateDesignationRetries(t *testing.T) {
 	// we can verify the retry path by pre-registering many drones with
 	// all possible generated designations and then verifying a new
 	// registration still works (or shows the right error).
-	
+
 	// Pre-register a drone so we can test explicit duplicate.
 	d, err := s.store.RegisterDrone("Locutus of Borg", "alcove")
 	if err != nil {

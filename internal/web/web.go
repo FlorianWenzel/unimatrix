@@ -78,13 +78,13 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 type pageData struct {
-	Title             string
-	Drone             *store.Drone // nil if anonymous
-	Transmissions     []store.Transmission
-	Flash             string
-	FilterDrone       string
-	AllDrones         []string
-	TopTransmissions  []store.Transmission
+	Title            string
+	Drone            *store.Drone // nil if anonymous
+	Transmissions    []store.Transmission
+	Flash            string
+	FilterDrone      string
+	AllDrones        []string
+	TopTransmissions []store.Transmission
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -311,8 +311,10 @@ func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
 	
 	// Return JSON response
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"likes":   tx.Likes + 1,
-	})
+	}); err != nil {
+		s.logger.Error("encode json", "err", err)
+	}
 }
