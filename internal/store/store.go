@@ -47,6 +47,7 @@ type Transmission struct {
 	Body        string
 	CreatedAt   time.Time
 	Likes       int
+	IsQueen     bool
 }
 
 // Open opens or creates the SQLite database at dsn and applies any
@@ -230,10 +231,10 @@ func (s *Store) PostTransmission(droneID int64, body string) (*Transmission, err
 	id, _ := res.LastInsertId()
 	var t Transmission
 	err = s.db.QueryRow(
-		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
 		  WHERE t.id = ?`, id,
-	).Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt)
+	).Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -246,9 +247,9 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 		limit = 50
 	}
 	rows, err := s.db.Query(
-		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
-		  ORDER BY t.created_at DESC, t.id DESC
+		  ORDER BY d.is_queen DESC, t.created_at DESC, t.id DESC
 		  LIMIT ?`, limit,
 	)
 	if err != nil {
@@ -259,7 +260,7 @@ func (s *Store) ListTransmissions(limit int) ([]Transmission, error) {
 	var out []Transmission
 	for rows.Next() {
 		var t Transmission
-		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -273,7 +274,7 @@ func (s *Store) ListTransmissionsByDrone(designation string, limit int) ([]Trans
 		limit = 50
 	}
 	rows, err := s.db.Query(
-		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
 		  WHERE d.designation = ?
 		  ORDER BY t.created_at DESC, t.id DESC
@@ -287,7 +288,7 @@ func (s *Store) ListTransmissionsByDrone(designation string, limit int) ([]Trans
 	var out []Transmission
 	for rows.Next() {
 		var t Transmission
-		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -341,11 +342,11 @@ func (s *Store) IsAcknowledgedByDrone(droneID, transmissionID int64) (bool, erro
 // GetTopTransmissions returns the top 5 transmissions with the most likes.
 func (s *Store) GetTopTransmissions() ([]Transmission, error) {
 	rows, err := s.db.Query(
-		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at, COUNT(l.transmission_id) as likes
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at, COUNT(l.transmission_id) as likes
 		   FROM transmissions t 
 		   JOIN drones d ON d.id = t.drone_id
 		   LEFT JOIN likes l ON l.transmission_id = t.id
-		   GROUP BY t.id, t.drone_id, d.designation, t.body, t.created_at
+		   GROUP BY t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		   ORDER BY likes DESC, t.created_at DESC
 		   LIMIT 5`,
 	)
@@ -357,7 +358,7 @@ func (s *Store) GetTopTransmissions() ([]Transmission, error) {
 	var out []Transmission
 	for rows.Next() {
 		var t Transmission
-		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt, &t.Likes); err != nil {
+		if err := rows.Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt, &t.Likes); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -369,10 +370,10 @@ func (s *Store) GetTopTransmissions() ([]Transmission, error) {
 func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
 	var t Transmission
 	err := s.db.QueryRow(
-		`SELECT t.id, t.drone_id, d.designation, t.body, t.created_at
+		`SELECT t.id, t.drone_id, d.designation, d.is_queen, t.body, t.created_at
 		   FROM transmissions t JOIN drones d ON d.id = t.drone_id
 		  WHERE t.id = ?`, id,
-	).Scan(&t.ID, &t.DroneID, &t.Designation, &t.Body, &t.CreatedAt)
+	).Scan(&t.ID, &t.DroneID, &t.Designation, &t.IsQueen, &t.Body, &t.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
