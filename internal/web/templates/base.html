@@ -131,6 +131,19 @@
       }
     });
   </script>
+  <script>
+    // Keyboard shortcuts for navigation
+    document.addEventListener('keydown', function(e) {
+      // Don't trigger shortcuts when typing in form fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      switch (e.key.toLowerCase()) {
+        case 'h': window.location.href = '/'; break;
+        case 'l': window.location.href = '/login'; break;
+        case 'r': window.location.href = '/register'; break;
+        case 'a': window.location.href = '/about'; break;
+      }
+    });
+  </script>
 </head>
 <body>
   <header>
