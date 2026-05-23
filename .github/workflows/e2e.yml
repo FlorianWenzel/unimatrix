@@ -1,0 +1,72 @@
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  cypress:
+    name: cypress
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build app
+        run: CGO_ENABLED=0 go build -trimpath -o ./bin/unimatrix ./cmd/unimatrix
+
+      - name: Start unimatrix in background
+        run: |
+          ./bin/unimatrix > /tmp/unimatrix.log 2>&1 &
+          echo "UNIMATRIX_PID=$!" >> $GITHUB_ENV
+        env:
+          UNIMATRIX_DB: /tmp/cypress-unimatrix.db
+          UNIMATRIX_ADDR: ':8080'
+          UNIMATRIX_COOKIE_SECURE: '0'
+          UNIMATRIX_SESSION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+
+      - name: Wait for unimatrix to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/healthz > /dev/null; then
+              echo "unimatrix is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "unimatrix did not become ready" >&2
+          cat /tmp/unimatrix.log >&2 || true
+          exit 1
+
+      - name: Run Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          install-command: npm ci
+          browser: chrome
+          record: false
+
+      - name: Server log on failure
+        if: failure()
+        run: cat /tmp/unimatrix.log || true
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7

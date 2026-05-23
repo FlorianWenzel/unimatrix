@@ -8,3 +8,9 @@ bin/
 .DS_Store
 .env
 .env.local
+
+# Cypress
+node_modules/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/

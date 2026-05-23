@@ -52,8 +52,15 @@
         {{if gt .Likes 0}}
         · <span style="color: var(--accent); font-weight: bold;">{{.Likes}} acknowledgments</span>
         {{end}}
-        <button class="inline copy-link" 
-                data-id="{{.ID}}" 
+        {{if $.Drone}}
+        <form method="post" action="/like" style="display: inline; margin-left: 8px;">
+          <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="inline" type="submit" style="font-size: 12px;">&#9825; acknowledge</button>
+        </form>
+        {{end}}
+        <button class="inline copy-link"
+                data-id="{{.ID}}"
                 style="margin-left: 8px; font-size: 12px;">
           copy link
         </button>
