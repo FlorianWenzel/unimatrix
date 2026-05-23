@@ -48,7 +48,7 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 	tmpl := make(map[string]*template.Template)
 	// Pages that include base.html — parse each separately to avoid
 	// {{define "content"}} redefinition (Go 1.24 overwrites silently).
-	for _, page := range []string{"home", "about", "login", "register", "transmission"} {
+	for _, page := range []string{"home", "about", "login", "register", "transmission", "404"} {
 		t, err := template.ParseFS(templatesFS, "templates/base.html", "templates/"+page+".html")
 		if err != nil {
 			return nil, err
@@ -56,7 +56,7 @@ func NewServer(s *store.Store, cfg Config) (*Server, error) {
 		tmpl[page+".html"] = t
 	}
 	// Standalone pages — no base.html dependency.
-	for _, page := range []string{"drone", "404"} {
+	for _, page := range []string{"drone"} {
 		t, err := template.ParseFS(templatesFS, "templates/"+page+".html")
 		if err != nil {
 			return nil, err
@@ -543,19 +543,11 @@ func (s *Server) transmissionPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
 	csrfTok, _ := s.ensureCSRFToken(w, r)
-	t, ok := s.tmpl["404.html"]
-	if !ok {
-		s.logger.Error("render 404", "err", "unknown template")
-		return
-	}
-	if err := t.ExecuteTemplate(w, "404.html", pageData{
+	s.render(w, "404.html", pageData{
 		Title:     "Sector Uncharted",
 		Drone:     s.currentDrone(r),
 		CSRFToken: csrfTok,
-	}); err != nil {
-		s.logger.Error("render 404", "err", err)
-	}
+	})
 }
