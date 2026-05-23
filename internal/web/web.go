@@ -78,6 +78,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("GET /favicon.ico", s.favicon)
+	mux.HandleFunc("GET /robots.txt", s.robotsTxt)
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("GET /about", s.about)
 	mux.HandleFunc("GET /register", s.registerForm)
@@ -110,6 +111,11 @@ func (s *Server) favicon(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	_, _ = w.Write([]byte(faviconInlineSVG))
+}
+
+func (s *Server) robotsTxt(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("User-agent: *\nAllow: /\nAllow: /transmission/*\nDisallow: /register\nDisallow: /login\nDisallow: /logout\nDisallow: /healthz\nDisallow: /about\n"))
 }
 
 type pageData struct {

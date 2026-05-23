@@ -573,3 +573,27 @@ func TestTransmissionPageNotFound(t *testing.T) {
 		t.Fatal("expected 'Sector Uncharted' for unknown transmission")
 	}
 }
+
+func TestRobotsTxt(t *testing.T) {
+	s := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	rec := httptest.NewRecorder()
+
+	s.robotsTxt(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "text/plain") {
+		t.Fatalf("want Content-Type text/plain, got %q", ct)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Disallow: /register") {
+		t.Fatal("expected 'Disallow: /register' in response body")
+	}
+	if !strings.Contains(body, "Allow: /") {
+		t.Fatal("expected 'Allow: /' in response body")
+	}
+}
