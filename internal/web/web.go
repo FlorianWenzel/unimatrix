@@ -69,6 +69,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /logout", s.logoutSubmit)
 	mux.HandleFunc("POST /transmission", s.postTransmission)
 	mux.HandleFunc("POST /like", s.likeTransmission)
+	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
 	return mux
 }
 
@@ -80,6 +81,7 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 type pageData struct {
 	Title            string
 	Drone            *store.Drone // nil if anonymous
+	ProfileDrone     *store.Drone // drone being viewed on profile page
 	Transmissions    []store.Transmission
 	Flash            string
 	FilterDrone      string
@@ -317,4 +319,33 @@ func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		s.logger.Error("encode json", "err", err)
 	}
+}
+
+func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
+	designation := r.PathValue("designation")
+
+	d, err := s.store.DroneByDesignation(designation)
+	if err != nil {
+		s.logger.Error("lookup drone", "designation", designation, "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+	if d == nil {
+		http.Error(w, "drone not found", http.StatusNotFound)
+		return
+	}
+
+	txs, err := s.store.ListTransmissionsByDrone(designation, 50)
+	if err != nil {
+		s.logger.Error("list transmissions", "err", err)
+		http.Error(w, "the hive falters", http.StatusInternalServerError)
+		return
+	}
+
+	s.render(w, "drone.html", pageData{
+		Title:         d.Designation,
+		Drone:         s.currentDrone(r),
+		ProfileDrone:  d,
+		Transmissions: txs,
+	})
 }
