@@ -110,7 +110,7 @@ func (s *Server) currentDrone(r *http.Request) *store.Drone {
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	filterDrone := r.URL.Query().Get("filter")
-	
+
 	// Get all unique drone designations
 	allDrones, err := s.store.ListAllDroneDesignations()
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the hive falters", http.StatusInternalServerError)
 		return
 	}
-	
+
 	var txs []store.Transmission
 	if filterDrone != "" {
 		// Filter by specific drone designation
@@ -132,7 +132,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the hive falters", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Get top transmissions by likes
 	topTxs, err := s.store.GetTopTransmissions()
 	if err != nil {
@@ -140,13 +140,13 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the hive falters", http.StatusInternalServerError)
 		return
 	}
-	
+
 	s.render(w, "home.html", pageData{
-		Title:         "The Collective",
-		Drone:         s.currentDrone(r),
-		Transmissions: txs,
-		FilterDrone:   filterDrone,
-		AllDrones:     allDrones,
+		Title:            "The Collective",
+		Drone:            s.currentDrone(r),
+		Transmissions:    txs,
+		FilterDrone:      filterDrone,
+		AllDrones:        allDrones,
 		TopTransmissions: topTxs,
 	})
 }
@@ -276,39 +276,39 @@ func (s *Server) likeTransmission(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not authorized", http.StatusUnauthorized)
 		return
 	}
-	
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	
+
 	transmissionIDStr := r.PostFormValue("id")
 	if transmissionIDStr == "" {
 		http.Error(w, "missing transmission ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Convert to int64
 	transmissionID, err := strconv.ParseInt(transmissionIDStr, 10, 64)
 	if err != nil {
 		http.Error(w, "invalid transmission ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Check if transmission exists
 	tx, err := s.store.TransmissionByID(transmissionID)
 	if err != nil || tx == nil {
 		http.Error(w, "transmission not found", http.StatusNotFound)
 		return
 	}
-	
+
 	// Record the like
 	if err := s.store.LikeTransmission(d.ID, transmissionID); err != nil {
 		s.logger.Error("like transmission", "drone", d.Designation, "id", transmissionID, "err", err)
 		http.Error(w, "failed to like transmission", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Return JSON response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{

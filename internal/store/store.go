@@ -369,7 +369,7 @@ func (s *Store) TransmissionByID(id int64) (*Transmission, error) {
 		return nil, err
 	}
 	t.Likes = likes
-	
+
 	return &t, nil
 }
 
