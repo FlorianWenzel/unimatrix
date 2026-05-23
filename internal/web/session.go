@@ -68,6 +68,7 @@ func (s *Server) clearSession(w http.ResponseWriter) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   s.cookieSecure,
 	})
+	w.Header().Set("Clear-Site-Data", `"cache", "cookies", "storage"`)
 }
 
 // currentDroneID returns the authenticated drone's ID, or 0 if anonymous.
