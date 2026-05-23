@@ -343,9 +343,9 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.render(w, "drone.html", pageData{
-		Title:        d.Designation,
-		Drone:        s.currentDrone(r),
-		ProfileDrone: d,
+		Title:         d.Designation,
+		Drone:         s.currentDrone(r),
+		ProfileDrone:  d,
 		Transmissions: txs,
 	})
 }
