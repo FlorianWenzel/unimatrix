@@ -31,6 +31,20 @@ func newTestServer(t *testing.T) *Server {
 	return svr
 }
 
+// newCSRFToken returns a fresh CSRF token and sets it as a cookie on the request.
+func newCSRFToken(t *testing.T, req *http.Request) string {
+	t.Helper()
+	tok, err := csrfToken()
+	if err != nil {
+		t.Fatalf("csrfToken: %v", err)
+	}
+	req.AddCookie(&http.Cookie{
+		Name:  csrfCookieName,
+		Value: tok,
+	})
+	return tok
+}
+
 func TestGenerateBorgDesignation(t *testing.T) {
 	seen := map[string]bool{}
 	for i := 0; i < 100; i++ {
@@ -54,12 +68,14 @@ func TestGenerateBorgDesignation(t *testing.T) {
 func TestRegisterSubmitEmptyDesignationAutoGenerates(t *testing.T) {
 	s := newTestServer(t)
 
-	form := url.Values{
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader("_csrf=x&designation=&access_code=resistance"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tok := newCSRFToken(t, req)
+	req.PostForm = url.Values{
+		"_csrf":       {tok},
 		"designation": {""},
 		"access_code": {"resistance"},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 
 	s.registerSubmit(rec, req)
@@ -82,12 +98,14 @@ func TestRegisterSubmitEmptyDesignationAutoGenerates(t *testing.T) {
 func TestRegisterSubmitRequiresAccessCode(t *testing.T) {
 	s := newTestServer(t)
 
-	form := url.Values{
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader("_csrf=x&designation=&access_code="))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tok := newCSRFToken(t, req)
+	req.PostForm = url.Values{
+		"_csrf":       {tok},
 		"designation": {""},
 		"access_code": {""},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 
 	s.registerSubmit(rec, req)
@@ -103,12 +121,6 @@ func TestRegisterSubmitRequiresAccessCode(t *testing.T) {
 func TestRegisterSubmitDuplicateDesignationRetries(t *testing.T) {
 	s := newTestServer(t)
 
-	// Register a drone first so that the randomly-generated designation
-	// may collide. We can't deterministically force a collision, but
-	// we can verify the retry path by pre-registering many drones with
-	// all possible generated designations and then verifying a new
-	// registration still works (or shows the right error).
-
 	// Pre-register a drone so we can test explicit duplicate.
 	d, err := s.store.RegisterDrone("Locutus of Borg", "alcove")
 	if err != nil {
@@ -117,12 +129,14 @@ func TestRegisterSubmitDuplicateDesignationRetries(t *testing.T) {
 	_ = d
 
 	// Submit with the same explicit designation.
-	form := url.Values{
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader("_csrf=x&designation=Locutus+of+Borg&access_code=alcove"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tok := newCSRFToken(t, req)
+	req.PostForm = url.Values{
+		"_csrf":       {tok},
 		"designation": {"Locutus of Borg"},
 		"access_code": {"alcove"},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 
 	s.registerSubmit(rec, req)
@@ -251,15 +265,17 @@ func TestPostTransmissionRateLimit(t *testing.T) {
 	}
 
 	post := func() *httptest.ResponseRecorder {
-		form := url.Values{
-			"body": {"resistance is futile"},
-		}
-		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader("_csrf=x&body=resistance+is+futile"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.AddCookie(&http.Cookie{
 			Name:  sessionCookieName,
 			Value: signCookie(d.ID, s.sessionKey),
 		})
+		tok := newCSRFToken(t, req)
+		req.PostForm = url.Values{
+			"_csrf": {tok},
+			"body":  {"resistance is futile"},
+		}
 		rec := httptest.NewRecorder()
 		s.postTransmission(rec, req)
 		return rec
@@ -297,15 +313,17 @@ func TestRateLimiterIndependentDrones(t *testing.T) {
 	}
 
 	post := func(d *store.Drone) *httptest.ResponseRecorder {
-		form := url.Values{
-			"body": {"resistance is futile"},
-		}
-		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/transmission", strings.NewReader("_csrf=x&body=resistance+is+futile"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.AddCookie(&http.Cookie{
 			Name:  sessionCookieName,
 			Value: signCookie(d.ID, s.sessionKey),
 		})
+		tok := newCSRFToken(t, req)
+		req.PostForm = url.Values{
+			"_csrf": {tok},
+			"body":  {"resistance is futile"},
+		}
 		rec := httptest.NewRecorder()
 		s.postTransmission(rec, req)
 		return rec
