@@ -204,8 +204,8 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 func (s *Server) about(w http.ResponseWriter, r *http.Request) {
 	csrfTok, _ := s.ensureCSRFToken(w, r)
 	s.render(w, "about.html", pageData{
-		Title:           "About the Unimatrix",
-		Drone:           s.currentDrone(r),
+		Title:     "About the Unimatrix",
+		Drone:     s.currentDrone(r),
 		CSRFToken: csrfTok,
 	})
 }
