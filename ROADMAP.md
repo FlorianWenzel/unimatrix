@@ -47,6 +47,11 @@
 - [x] Assimilate/Sever button on public drone profiles + tests (#95, #99)
 - [x] Add aria-labels to interactive buttons (#103)
 - [x] Show 'Assimilated by' count on public profiles (#108)
+- [x] Update About Hive copy to reflect acknowledgments and assimilations (#112)
+- [x] Store-level unit tests for CountDrones, follow methods, and CountFollowers (#114)
+- [x] Copy Link button on transmission permalink page (#116)
+- [x] Show 'Acknowledged' state on transmissions the current drone has liked (#118)
+- [x] E2E Policy guard rail (fail PRs that change UI without a Cypress spec)
 
 ## 🔧 Current milestone: The Network
 
@@ -55,7 +60,7 @@
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
 - [ ] Refactor drone profile template to extend base.html (#107)
-- [ ] Update About Hive copy to reflect acknowledgments feature (#112)
+- [ ] Add Cypress E2E test for public drone profile page (#120)
 
 ## 🧊 Next: Engagement
 
