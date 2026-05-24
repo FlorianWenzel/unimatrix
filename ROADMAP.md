@@ -23,16 +23,15 @@
 - [x] Implement Top Transmissions Leaderboard
 - [x] Auto-generate Borg designation when signup field is left blank
 - [x] Add public drone profile pages
-- [x] Add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options)
-- [x] Borg-themed 404 Not Found page + test coverage
-- [x] Rate-limit POST /transmission
-- [x] Unit tests for per-drone rate limiter
+- [x] Add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+- [x] Borg-themed 404 Not Found page + test coverage + base.html refactor
+- [x] Rate-limit POST /transmission + unit tests
 - [x] Add Queen role and crown badge on drone profiles
 - [x] Borg-green cube favicon
 - [x] Add CSRF tokens to POST forms
 - [x] Table-driven tests for security headers on routes
 - [x] Link drone designations on home feed to public profiles (#65)
-- [x] Individual transmission permalink page (#69)
+- [x] Individual transmission permalink page + test coverage (#69)
 - [x] Keyboard shortcuts for navigation (#26)
 - [x] robots.txt (#75)
 - [x] Integration tests for login and logout flow (#77)
@@ -40,12 +39,12 @@
 - [x] Clear-Site-Data header on logout (#81)
 - [x] Total drone count on About Hive page (#83)
 - [x] Fix CSP inline styles bug (#71)
-- [x] Pin Queen transmissions to top of home feed (#86)
-- [x] Test for Queen transmission pin ordering (#88)
-- [x] Referrer-Policy header (#90)
-- [x] Acknowledge button on transmission cards (#91)
+- [x] Pin Queen transmissions to top of home feed + tests (#86, #88)
+- [x] Acknowledge button on transmission cards + tests (#91)
 - [x] Cypress E2E test suite + CI workflow
 - [x] Cloudflare Tunnel for public access (unimatrix.flos.life)
+- [x] Assimilate/Sever button on public drone profiles + tests (#95, #99)
+- [x] Add aria-labels to interactive buttons (#103)
 
 ## 🔧 Current milestone: The Network
 
@@ -53,6 +52,7 @@
 - [ ] Broadcast 'Regeneration' inactivity status (#41)
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
+- [ ] Refactor drone profile template to extend base.html (#107)
 
 ## 🧊 Next: Engagement
 
