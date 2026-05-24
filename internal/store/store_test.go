@@ -105,3 +105,166 @@ func TestPostTransmissionRejectsEmptyAndOverlong(t *testing.T) {
 		t.Fatalf("overlong body should error")
 	}
 }
+
+func TestCountDrones(t *testing.T) {
+	s := newTestStore(t)
+
+	// Empty store.
+	c, err := s.CountDrones()
+	if err != nil {
+		t.Fatalf("CountDrones (empty): %v", err)
+	}
+	if c != 0 {
+		t.Fatalf("empty store: want 0, got %d", c)
+	}
+
+	// Register one drone.
+	if _, err := s.RegisterDrone("One", "access"); err != nil {
+		t.Fatalf("RegisterDrone: %v", err)
+	}
+	c, err = s.CountDrones()
+	if err != nil {
+		t.Fatalf("CountDrones (1): %v", err)
+	}
+	if c != 1 {
+		t.Fatalf("after 1 registration: want 1, got %d", c)
+	}
+
+	// Register a second drone.
+	if _, err := s.RegisterDrone("Two", "access"); err != nil {
+		t.Fatalf("RegisterDrone 2: %v", err)
+	}
+	c, err = s.CountDrones()
+	if err != nil {
+		t.Fatalf("CountDrones (2): %v", err)
+	}
+	if c != 2 {
+		t.Fatalf("after 2 registrations: want 2, got %d", c)
+	}
+}
+
+func TestFollowUnfollowCycle(t *testing.T) {
+	s := newTestStore(t)
+
+	a, err := s.RegisterDrone("DroneA", "access")
+	if err != nil {
+		t.Fatalf("register A: %v", err)
+	}
+	b, err := s.RegisterDrone("DroneB", "access")
+	if err != nil {
+		t.Fatalf("register B: %v", err)
+	}
+
+	// Should not be following initially.
+	following, err := s.IsFollowing(a.ID, b.ID)
+	if err != nil {
+		t.Fatalf("IsFollowing (initial): %v", err)
+	}
+	if following {
+		t.Fatal("expected IsFollowing to be false before follow")
+	}
+
+	// Follow.
+	if err := s.FollowDrone(a.ID, b.ID); err != nil {
+		t.Fatalf("FollowDrone: %v", err)
+	}
+	following, err = s.IsFollowing(a.ID, b.ID)
+	if err != nil {
+		t.Fatalf("IsFollowing (after follow): %v", err)
+	}
+	if !following {
+		t.Fatal("expected IsFollowing to be true after follow")
+	}
+
+	// Duplicate follow should be idempotent (no error).
+	if err := s.FollowDrone(a.ID, b.ID); err != nil {
+		t.Fatalf("FollowDrone (duplicate): %v", err)
+	}
+
+	// Unfollow.
+	if err := s.UnfollowDrone(a.ID, b.ID); err != nil {
+		t.Fatalf("UnfollowDrone: %v", err)
+	}
+	following, err = s.IsFollowing(a.ID, b.ID)
+	if err != nil {
+		t.Fatalf("IsFollowing (after unfollow): %v", err)
+	}
+	if following {
+		t.Fatal("expected IsFollowing to be false after unfollow")
+	}
+
+	// Unrelated drones should not be following each other.
+	c, err := s.RegisterDrone("DroneC", "access")
+	if err != nil {
+		t.Fatalf("register C: %v", err)
+	}
+	following, err = s.IsFollowing(a.ID, c.ID)
+	if err != nil {
+		t.Fatalf("IsFollowing (unrelated): %v", err)
+	}
+	if following {
+		t.Fatal("expected IsFollowing to be false for unrelated drones")
+	}
+}
+
+func TestCountFollowers(t *testing.T) {
+	s := newTestStore(t)
+
+	target, err := s.RegisterDrone("Target", "access")
+	if err != nil {
+		t.Fatalf("register target: %v", err)
+	}
+
+	// Zero followers.
+	c, err := s.CountFollowers(target.Designation)
+	if err != nil {
+		t.Fatalf("CountFollowers (0): %v", err)
+	}
+	if c != 0 {
+		t.Fatalf("zero followers: want 0, got %d", c)
+	}
+
+	// Add first follower.
+	f1, err := s.RegisterDrone("Follower1", "access")
+	if err != nil {
+		t.Fatalf("register f1: %v", err)
+	}
+	if err := s.FollowDrone(f1.ID, target.ID); err != nil {
+		t.Fatalf("follow f1: %v", err)
+	}
+	c, err = s.CountFollowers(target.Designation)
+	if err != nil {
+		t.Fatalf("CountFollowers (1): %v", err)
+	}
+	if c != 1 {
+		t.Fatalf("1 follower: want 1, got %d", c)
+	}
+
+	// Add second follower.
+	f2, err := s.RegisterDrone("Follower2", "access")
+	if err != nil {
+		t.Fatalf("register f2: %v", err)
+	}
+	if err := s.FollowDrone(f2.ID, target.ID); err != nil {
+		t.Fatalf("follow f2: %v", err)
+	}
+	c, err = s.CountFollowers(target.Designation)
+	if err != nil {
+		t.Fatalf("CountFollowers (2): %v", err)
+	}
+	if c != 2 {
+		t.Fatalf("2 followers: want 2, got %d", c)
+	}
+
+	// Remove one follower.
+	if err := s.UnfollowDrone(f1.ID, target.ID); err != nil {
+		t.Fatalf("unfollow f1: %v", err)
+	}
+	c, err = s.CountFollowers(target.Designation)
+	if err != nil {
+		t.Fatalf("CountFollowers (after unfollow): %v", err)
+	}
+	if c != 1 {
+		t.Fatalf("after unfollow: want 1, got %d", c)
+	}
+}
