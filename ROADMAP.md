@@ -26,6 +26,7 @@
 - [x] Add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
 - [x] Borg-themed 404 Not Found page + test coverage + base.html refactor
 - [x] Rate-limit POST /transmission + unit tests
+- [x] Rate-limit POST /login to prevent brute-force attacks (#110)
 - [x] Add Queen role and crown badge on drone profiles
 - [x] Borg-green cube favicon
 - [x] Add CSRF tokens to POST forms
@@ -45,6 +46,7 @@
 - [x] Cloudflare Tunnel for public access (unimatrix.flos.life)
 - [x] Assimilate/Sever button on public drone profiles + tests (#95, #99)
 - [x] Add aria-labels to interactive buttons (#103)
+- [x] Show 'Assimilated by' count on public profiles (#108)
 
 ## 🔧 Current milestone: The Network
 
@@ -53,6 +55,7 @@
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
 - [ ] Refactor drone profile template to extend base.html (#107)
+- [ ] Update About Hive copy to reflect acknowledgments feature (#112)
 
 ## 🧊 Next: Engagement
 
