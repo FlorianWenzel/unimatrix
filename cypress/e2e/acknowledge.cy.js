@@ -38,19 +38,25 @@ describe('acknowledge a transmission', () => {
     // acknowledgments" (template suppresses the line when Likes==0).
     cy.get('@post').should('not.contain', '1 acknowledgments');
 
-    // Click the acknowledge control. This is the line that currently
-    // fails: no element matching this selector is rendered by any
-    // template. The fix is to add a form/button inside the transmission
-    // card that POSTs to /like with the transmission id + CSRF token.
+    // Verify the button shows unacknowledged state with "♡ acknowledge"
     cy.get('@post')
       .contains('button', /acknowledge|^ack$|\back\b/i)
-      .click();
+      .as('ackButton')
+      .should('contain', '♡ acknowledge');
 
-    // After acknowledging, reload the page (the route currently returns
-    // JSON; once the form-based UI exists it will redirect, but a reload
-    // is defensible either way) and assert the count reflects the like.
+    // Click the acknowledge control.
+    cy.get('@ackButton').click();
+
+    // After acknowledging, reload the page and assert the count reflects
+    // the acknowledgment and the button now shows acknowledged state.
     cy.reload();
     cy.contains('.transmission, [class*="transmission"]', body)
+      .as('postAfterAck')
       .should('contain', '1 acknowledgments');
+
+    // Verify the button now shows acknowledged state with "♥ acknowledged"
+    cy.get('@postAfterAck')
+      .contains('button', /acknowledge|^ack$|\back\b/i)
+      .should('contain', '♥ acknowledged');
   });
 });

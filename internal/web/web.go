@@ -133,6 +133,7 @@ type pageData struct {
 	DroneCount       int
 	FollowerCount    int
 	IsFollowing      bool
+	AcknowledgedMap  map[int64]bool // transmission ID -> acknowledged by current drone
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -202,6 +203,19 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Build acknowledgment map for the current drone
+	ackMap := make(map[int64]bool)
+	if drone := s.currentDrone(r); drone != nil {
+		for _, tx := range txs {
+			acked, err := s.store.IsAcknowledgedByDrone(drone.ID, tx.ID)
+			if err != nil {
+				s.logger.Warn("check acknowledged", "drone", drone.ID, "tx", tx.ID, "err", err)
+				continue
+			}
+			ackMap[tx.ID] = acked
+		}
+	}
+
 	s.render(w, "home.html", pageData{
 		Title:            "The Collective",
 		Drone:            s.currentDrone(r),
@@ -210,6 +224,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		AllDrones:        allDrones,
 		TopTransmissions: topTxs,
 		CSRFToken:        csrfTok,
+		AcknowledgedMap:  ackMap,
 	})
 }
 
