@@ -445,6 +445,19 @@ func (s *Store) IsFollowing(followerID, followeeID int64) (bool, error) {
 	return count > 0, err
 }
 
+// CountFollowers returns the number of drones that follow the drone
+// identified by designation.
+func (s *Store) CountFollowers(designation string) (int, error) {
+	var count int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM follows f
+		 JOIN drones d ON f.followee_id = d.id
+		 WHERE d.designation = ?`,
+		designation,
+	).Scan(&count)
+	return count, err
+}
+
 // SetQueenFlag sets the is_queen flag for a drone. This is intended for
 // DB-level administration; no UI toggle exists yet.
 func (s *Store) SetQueenFlag(droneID int64, isQueen bool) error {

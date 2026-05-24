@@ -1177,3 +1177,42 @@ func TestLikeAcknowledgeEndpoint(t *testing.T) {
 		t.Fatalf("bad id like: want 404, got %d", rec.Code)
 	}
 }
+
+func TestFollowerCountOnProfile(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	followee, err := s.store.RegisterDrone("TheBorgQueen", "omega")
+	if err != nil {
+		t.Fatalf("register followee: %v", err)
+	}
+	follower, err := s.store.RegisterDrone("Seven of Nine", "voyager")
+	if err != nil {
+		t.Fatalf("register follower: %v", err)
+	}
+
+	// Zero followers: profile should not show the count line.
+	req := httptest.NewRequest(http.MethodGet, "/drone/TheBorgQueen", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("profile: want 200, got %d", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "Assimilated by") {
+		t.Fatal("expected no follower count when zero followers")
+	}
+
+	// Add a follower.
+	if err := s.store.FollowDrone(follower.ID, followee.ID); err != nil {
+		t.Fatalf("follow: %v", err)
+	}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("profile: want 200, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Assimilated by 1 drones") {
+		t.Fatal("expected 'Assimilated by 1 drones' after following")
+	}
+}
