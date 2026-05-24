@@ -131,6 +131,7 @@ type pageData struct {
 	Transmission     *store.Transmission // single transmission view
 	CSRFToken        string
 	DroneCount       int
+	FollowerCount    int
 	IsFollowing      bool
 }
 
@@ -501,9 +502,17 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 
 	csrfTok, _ := s.ensureCSRFToken(w, r)
 
-	var isFollowing bool
+	var (
+		isFollowing   bool
+		followerCount int
+	)
 	if cur := s.currentDrone(r); cur != nil {
 		isFollowing, _ = s.store.IsFollowing(cur.ID, d.ID)
+	}
+	followerCount, err = s.store.CountFollowers(designation)
+	if err != nil {
+		s.logger.Error("count followers", "designation", designation, "err", err)
+		// Non-fatal; show the page without the count.
 	}
 
 	s.render(w, "drone.html", pageData{
@@ -512,6 +521,7 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 		ProfileDrone:  d,
 		Transmissions: txs,
 		CSRFToken:     csrfTok,
+		FollowerCount: followerCount,
 		IsFollowing:   isFollowing,
 	})
 }

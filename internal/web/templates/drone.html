@@ -152,6 +152,9 @@
 
     <p style="color: var(--fg-dim); margin-bottom: 20px;">
       Assimilated: {{.ProfileDrone.CreatedAt.Format "2006-01-02"}}
+      {{if gt .FollowerCount 0}}
+      · Assimilated by {{.FollowerCount}} drones
+      {{end}}
     </p>
 
     {{if .Drone}}
