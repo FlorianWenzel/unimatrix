@@ -34,10 +34,11 @@ type Store struct {
 }
 
 type Drone struct {
-	ID          int64
+	ID         int64
 	Designation string
 	CreatedAt   time.Time
 	IsQueen     bool
+	LastSeenAt  *time.Time // NULL when drone has never authenticated
 }
 
 type Transmission struct {
@@ -166,10 +167,11 @@ func (s *Store) Authenticate(designation, accessCode string) (*Drone, error) {
 		ts   time.Time
 	)
 	var isQueen bool
+	var lastSeenAt *time.Time
 	err := s.db.QueryRow(
-		`SELECT id, password_hash, created_at, is_queen FROM drones WHERE designation = ?`,
+		`SELECT id, password_hash, created_at, is_queen, last_seen_at FROM drones WHERE designation = ?`,
 		designation,
-	).Scan(&id, &hash, &ts, &isQueen)
+	).Scan(&id, &hash, &ts, &isQueen, &lastSeenAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrAuthFailed
 	}
@@ -179,15 +181,15 @@ func (s *Store) Authenticate(designation, accessCode string) (*Drone, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(accessCode)); err != nil {
 		return nil, ErrAuthFailed
 	}
-	return &Drone{ID: id, Designation: designation, CreatedAt: ts, IsQueen: isQueen}, nil
+	return &Drone{ID: id, Designation: designation, CreatedAt: ts, IsQueen: isQueen, LastSeenAt: lastSeenAt}, nil
 }
 
 // DroneByID looks up a drone by primary key. Returns nil, nil if not found.
 func (s *Store) DroneByID(id int64) (*Drone, error) {
 	var d Drone
 	err := s.db.QueryRow(
-		`SELECT id, designation, created_at, is_queen FROM drones WHERE id = ?`, id,
-	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen)
+		`SELECT id, designation, created_at, is_queen, last_seen_at FROM drones WHERE id = ?`, id,
+	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen, &d.LastSeenAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -201,8 +203,8 @@ func (s *Store) DroneByID(id int64) (*Drone, error) {
 func (s *Store) DroneByDesignation(designation string) (*Drone, error) {
 	var d Drone
 	err := s.db.QueryRow(
-		`SELECT id, designation, created_at, is_queen FROM drones WHERE designation = ?`, designation,
-	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen)
+		`SELECT id, designation, created_at, is_queen, last_seen_at FROM drones WHERE designation = ?`, designation,
+	).Scan(&d.ID, &d.Designation, &d.CreatedAt, &d.IsQueen, &d.LastSeenAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -473,4 +475,13 @@ func (s *Store) CountDrones() (int, error) {
 	var count int
 	err := s.db.QueryRow(`SELECT COUNT(*) FROM drones`).Scan(&count)
 	return count, err
+}
+
+// UpdateLastSeenAt updates the last_seen_at timestamp for a drone to the current time.
+func (s *Store) UpdateLastSeenAt(droneID int64) error {
+	_, err := s.db.Exec(
+		`UPDATE drones SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		droneID,
+	)
+	return err
 }

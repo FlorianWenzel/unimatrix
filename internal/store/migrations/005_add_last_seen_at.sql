@@ -1,0 +1,1 @@
+ALTER TABLE drones ADD COLUMN last_seen_at TIMESTAMP;

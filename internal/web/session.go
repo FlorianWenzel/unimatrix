@@ -141,3 +141,42 @@ func (s *Server) csrfTokenFromRequest(r *http.Request) string {
 	}
 	return c.Value
 }
+
+const reconnectionCookieName = "unimatrix_reconnect"
+
+// setReconnectionFlag sets a temporary cookie to indicate the drone has reconnected.
+func (s *Server) setReconnectionFlag(w http.ResponseWriter, r *http.Request) {
+	// Only set if not already set
+	if _, err := r.Cookie(reconnectionCookieName); err == nil {
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     reconnectionCookieName,
+		Value:    "1",
+		Path:     "/",
+		MaxAge:   60, // expires in 60 seconds
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cookieSecure,
+	})
+}
+
+// checkAndClearReconnectionFlag checks if the reconnection flag is set,
+// clears it if present, and returns true if it was set.
+func (s *Server) checkAndClearReconnectionFlag(w http.ResponseWriter, r *http.Request) bool {
+	c, err := r.Cookie(reconnectionCookieName)
+	if err != nil || c.Value == "" {
+		return false
+	}
+	// Clear the cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     reconnectionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cookieSecure,
+	})
+	return true
+}

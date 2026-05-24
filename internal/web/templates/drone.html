@@ -148,7 +148,11 @@
   </header>
   <main>
     {{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
-    <h1>{{.ProfileDrone.Designation}}{{if .ProfileDrone.IsQueen}} <span style="color:var(--accent);font-size:14px;">♛ Queen</span>{{end}}</h1>
+    <h1>
+      {{.ProfileDrone.Designation}}
+      {{if .IsConnected}}<span style="color:var(--accent);font-size:14px;" title="Connected to the collective">●</span>{{end}}
+      {{if .ProfileDrone.IsQueen}} <span style="color:var(--accent);font-size:14px;">♛ Queen</span>{{end}}
+    </h1>
 
     <p style="color: var(--fg-dim); margin-bottom: 20px;">
       Assimilated: {{.ProfileDrone.CreatedAt.Format "2006-01-02"}}
