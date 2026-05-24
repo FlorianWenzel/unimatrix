@@ -327,6 +327,12 @@ func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	designation := strings.TrimSpace(r.PostFormValue("designation"))
+	if !s.rateLimiter.AllowString(designation, 5, time.Minute) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte("Connection frequency exceeded. Regenerate and retry."))
+		return
+	}
 	accessCode := r.PostFormValue("access_code")
 	d, err := s.store.Authenticate(designation, accessCode)
 	if err != nil {
