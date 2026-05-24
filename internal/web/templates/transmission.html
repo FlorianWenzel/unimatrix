@@ -18,6 +18,11 @@
       <button class="inline" type="submit" style="font-size: 12px;" aria-label="Acknowledge transmission">♡ acknowledge</button>
     </form>
     {{end}}
+    <button class="inline copy-link" aria-label="Copy link to transmission"
+            data-id="{{.Transmission.ID}}"
+            style="margin-left: 8px; font-size: 12px;">
+      copy link
+    </button>
   </div>
   <div class="body" style="font-size: 16px; margin-top: 12px;">{{.Transmission.Body}}</div>
 </div>
