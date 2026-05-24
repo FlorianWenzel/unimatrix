@@ -1,0 +1,76 @@
+name: E2E Policy
+
+# Mechanical guard rail for CONTRIBUTING.md's "user-visible features
+# need a Cypress e2e test" rule. Fails when a PR touches the web
+# surface (templates or web.go) without adding or modifying a
+# cypress/e2e/*.cy.js spec. Set this as a required check in branch
+# protection so QA's approval alone can't bypass it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: cypress spec required when web changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Inspect the diff for the policy condition
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Changed files in this PR:"
+          echo "$files" | sed 's/^/  /'
+
+          touched_web=0
+          if echo "$files" | grep -qE '^internal/web/templates/.*\.html$|^internal/web/web\.go$'; then
+            touched_web=1
+          fi
+
+          touched_e2e=0
+          if echo "$files" | grep -qE '^cypress/e2e/.*\.cy\.js$'; then
+            touched_e2e=1
+          fi
+
+          echo
+          echo "touched_web=$touched_web touched_e2e=$touched_e2e"
+
+          if [ "$touched_web" = 1 ] && [ "$touched_e2e" = 0 ]; then
+            cat <<'EOF' >&2
+
+          ╭──────────────────────────────────────────────────────────╮
+          │  E2E POLICY VIOLATION                                    │
+          │                                                          │
+          │  This PR modifies the browser-facing surface (templates  │
+          │  and/or web.go) but does not add or modify any           │
+          │  cypress/e2e/*.cy.js spec.                               │
+          │                                                          │
+          │  Per CONTRIBUTING.md: every user-visible change must     │
+          │  include a Cypress e2e test that drives the UI like a    │
+          │  user (cy.visit + cy.click + visible-text assertion).    │
+          │  A Go httptest assertion that the rendered HTML contains │
+          │  a string is NOT a substitute.                           │
+          │                                                          │
+          │  Fix: add a spec under cypress/e2e/<feature>.cy.js that  │
+          │  exercises the new behavior end-to-end, then push.       │
+          │                                                          │
+          │  Exempt cases: pure backend refactors with no template   │
+          │  change, doc-only PRs. If you believe this PR qualifies, │
+          │  reply on the PR explaining why and a maintainer can     │
+          │  override.                                               │
+          ╰──────────────────────────────────────────────────────────╯
+          EOF
+            exit 1
+          fi
+
+          echo "OK — policy satisfied (or not applicable)."
