@@ -576,6 +576,34 @@ func TestTransmissionPageNotFound(t *testing.T) {
 	}
 }
 
+func TestTransmissionPageHasCopyLinkButton(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	d, err := s.store.RegisterDrone("Nine of Twelve", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	tx, err := s.store.PostTransmission(d.ID, "Resistance is futile.")
+	if err != nil {
+		t.Fatalf("post transmission: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transmission/"+url.PathEscape(fmt.Sprint(tx.ID)), nil)
+	req.SetPathValue("id", fmt.Sprint(tx.ID))
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "copy link") {
+		t.Fatal("expected 'copy link' button in transmission permalink page")
+	}
+}
+
 func TestRobotsTxt(t *testing.T) {
 	s := newTestServer(t)
 
