@@ -1271,4 +1271,3 @@ func TestLoginRateLimit(t *testing.T) {
 		t.Fatal("expected 'Connection frequency exceeded' in rate-limit response")
 	}
 }
-
