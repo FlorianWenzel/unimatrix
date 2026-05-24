@@ -1216,3 +1216,59 @@ func TestFollowerCountOnProfile(t *testing.T) {
 		t.Fatal("expected 'Assimilated by 1 drones' after following")
 	}
 }
+
+func TestLoginRateLimit(t *testing.T) {
+	s := newTestServer(t)
+	h := s.Handler()
+
+	d, err := s.store.RegisterDrone("Five of Nine", "alcove")
+	if err != nil {
+		t.Fatalf("register drone: %v", err)
+	}
+	_ = d
+
+	// GET /login to obtain CSRF token cookie.
+	getReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	getRec := httptest.NewRecorder()
+	h.ServeHTTP(getRec, getReq)
+
+	var csrfTok string
+	for _, c := range getRec.Result().Cookies() {
+		if c.Name == csrfCookieName {
+			csrfTok = c.Value
+			break
+		}
+	}
+	if csrfTok == "" {
+		t.Fatal("no CSRF cookie set on GET /login")
+	}
+
+	postLogin := func() *httptest.ResponseRecorder {
+		form := url.Values{"designation": {d.Designation}, "access_code": {"wrong"}, "_csrf": {csrfTok}}
+		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{Name: csrfCookieName, Value: csrfTok})
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+
+	// First 5 attempts: should all get through to auth (200 with flash).
+	for i := 0; i < 5; i++ {
+		rec := postLogin()
+		if rec.Code != http.StatusOK {
+			t.Fatalf("attempt %d: want 200, got %d (body: %s)", i+1, rec.Code, rec.Body.String())
+		}
+	}
+
+	// 6th attempt: rate-limited → 429.
+	rec := postLogin()
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("6th attempt: want 429, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Connection frequency exceeded") {
+		t.Fatal("expected 'Connection frequency exceeded' in rate-limit response")
+	}
+}
+
