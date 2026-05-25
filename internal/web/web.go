@@ -92,7 +92,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /assimilate", s.assimilateToggle)
 	mux.HandleFunc("GET /drone/{designation}", s.droneProfile)
 	mux.HandleFunc("/", s.notFound)
-	return SecurityHeaders(mux)
+	return SecurityHeaders(s.UpdateLastSeen(mux))
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -134,6 +134,7 @@ type pageData struct {
 	FollowerCount    int
 	IsFollowing      bool
 	AcknowledgedMap  map[int64]bool // transmission ID -> acknowledged by current drone
+	IsConnected      bool           // is the ProfileDrone currently connected (last_seen_at within 5 minutes)
 }
 
 func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
@@ -205,7 +206,8 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 
 	// Build acknowledgment map for the current drone
 	ackMap := make(map[int64]bool)
-	if drone := s.currentDrone(r); drone != nil {
+	drone := s.currentDrone(r)
+	if drone != nil {
 		for _, tx := range txs {
 			acked, err := s.store.IsAcknowledgedByDrone(drone.ID, tx.ID)
 			if err != nil {
@@ -216,15 +218,22 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Check for reconnection flag and build flash message
+	var flash string
+	if drone != nil && s.checkAndClearReconnectionFlag(w, r) {
+		flash = drone.Designation + " has reconnected to the collective."
+	}
+
 	s.render(w, "home.html", pageData{
 		Title:            "The Collective",
-		Drone:            s.currentDrone(r),
+		Drone:            drone,
 		Transmissions:    txs,
 		FilterDrone:      filterDrone,
 		AllDrones:        allDrones,
 		TopTransmissions: topTxs,
 		CSRFToken:        csrfTok,
 		AcknowledgedMap:  ackMap,
+		Flash:            flash,
 	})
 }
 
@@ -536,6 +545,12 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal; show the page without the count.
 	}
 
+	// Check if drone is connected (last seen within 5 minutes)
+	isConnected := false
+	if d.LastSeenAt != nil {
+		isConnected = time.Since(*d.LastSeenAt) < 5*time.Minute
+	}
+
 	s.render(w, "drone.html", pageData{
 		Title:         d.Designation,
 		Drone:         s.currentDrone(r),
@@ -544,6 +559,7 @@ func (s *Server) droneProfile(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:     csrfTok,
 		FollowerCount: followerCount,
 		IsFollowing:   isFollowing,
+		IsConnected:   isConnected,
 	})
 }
 
