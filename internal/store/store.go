@@ -34,7 +34,7 @@ type Store struct {
 }
 
 type Drone struct {
-	ID         int64
+	ID          int64
 	Designation string
 	CreatedAt   time.Time
 	IsQueen     bool
