@@ -1,6 +1,9 @@
 package web
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // SecurityHeaders sets standard HTTP security headers on every response.
 func SecurityHeaders(next http.Handler) http.Handler {
