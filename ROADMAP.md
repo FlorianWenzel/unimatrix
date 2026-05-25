@@ -52,6 +52,7 @@
 - [x] Copy Link button on transmission permalink page (#116)
 - [x] Show 'Acknowledged' state on transmissions the current drone has liked (#118)
 - [x] E2E Policy guard rail (fail PRs that change UI without a Cypress spec)
+- [x] Cypress E2E test for public drone profile page (#120)
 
 ## 🔧 Current milestone: The Network
 
@@ -60,7 +61,6 @@
 - [ ] Broadcast 'Connection' alerts (#31)
 - [ ] Add 'Mute' drone capability (#38)
 - [ ] Refactor drone profile template to extend base.html (#107)
-- [ ] Add Cypress E2E test for public drone profile page (#120)
 
 ## 🧊 Next: Engagement
 
